@@ -7,7 +7,7 @@ class JMatrix {
 private:
 	int width;
 	int height;
-	bool* values;
+	char* values;
 
 public:
 	JMatrix() {}
@@ -16,7 +16,7 @@ public:
 		width = _width;
 		height = _height;
 
-		values = new bool[width * height];
+		values = new char[width * height];
 	}
 
 	~JMatrix() {
@@ -27,7 +27,7 @@ public:
 		width = copy.width;
 		height = copy.height;
 
-		values = new bool[width * height];
+		values = new char[width * height];
 		for (int i = 0; i < width * height; i++) {
 			values[i] = copy.height;
 		}
@@ -39,7 +39,7 @@ public:
 		width = copy.width;
 		height = copy.height;
 
-		values = new bool[width * height];
+		values = new char[width * height];
 		for (int i = 0; i < width * height; i++) {
 			values[i] = copy.height;
 		}
@@ -51,7 +51,7 @@ public:
 		return !(x < 0 || x >= width || y < 0 || y >= height);
 	}
 
-	bool getValue(int x, int y) {
+	char getValue(int x, int y) {
 		if (!isValidCoord(x, y)) {
 			throw "invalid cell coords";
 		}
@@ -59,7 +59,7 @@ public:
 		return values[x + y * width];
 	}
 
-	void setValue(int x, int y, bool value) {
+	void setValue(int x, int y, char value) {
 		if (!isValidCoord(x, y)) {
 			throw "invalid cell coords";
 		}
@@ -67,7 +67,7 @@ public:
 		values[x + y * width] = value;
 	}
 
-	void setAllValues(bool value) {
+	void setAllValues(char value) {
 		for (int i = 0; i < width * height; i++) {
 			values[i] = value;
 		}
@@ -89,7 +89,7 @@ public:
 	~PixelGrid();
 
 	std::pair<int, int> getCellCoords(Vector2 screenPos);
-	void setCellValue(int x, int y, bool value);
+	void setCellValue(int x, int y, char value);
 
 	void draw();
 };
