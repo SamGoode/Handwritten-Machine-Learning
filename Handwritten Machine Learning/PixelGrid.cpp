@@ -8,12 +8,8 @@ PixelGrid::PixelGrid(Vector2 _pos, float _size, int _cellCount) {
 	cellSize = size / cellCount;
 
 	matrix = JMatrix(cellCount, cellCount);
-	matrix.setAllValues(0);
+	matrix.setAllValues(255);
 	//matrix.setValue(4, 8, 1);
-}
-
-PixelGrid::~PixelGrid() {
-
 }
 
 std::pair<int, int> PixelGrid::getCellCoords(Vector2 screenPos) {

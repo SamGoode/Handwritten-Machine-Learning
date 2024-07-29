@@ -130,10 +130,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="JMatrix.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PixelGrid.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="JMatrix.h" />
     <ClInclude Include="PixelGrid.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

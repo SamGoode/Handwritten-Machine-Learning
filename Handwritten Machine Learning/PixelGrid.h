@@ -2,77 +2,7 @@
 #include <math.h>
 #include <utility>
 #include "raylib.h"
-
-class JMatrix {
-private:
-	int width;
-	int height;
-	char* values;
-
-public:
-	JMatrix() {}
-
-	JMatrix(int _width, int _height) {
-		width = _width;
-		height = _height;
-
-		values = new char[width * height];
-	}
-
-	~JMatrix() {
-		delete[] values;
-	}
-
-	JMatrix(const JMatrix& copy) {
-		width = copy.width;
-		height = copy.height;
-
-		values = new char[width * height];
-		for (int i = 0; i < width * height; i++) {
-			values[i] = copy.height;
-		}
-	}
-
-	const JMatrix& operator=(const JMatrix& copy) {
-		delete[] values;
-
-		width = copy.width;
-		height = copy.height;
-
-		values = new char[width * height];
-		for (int i = 0; i < width * height; i++) {
-			values[i] = copy.height;
-		}
-
-		return *this;
-	}
-
-	bool isValidCoord(int x, int y) {
-		return !(x < 0 || x >= width || y < 0 || y >= height);
-	}
-
-	char getValue(int x, int y) {
-		if (!isValidCoord(x, y)) {
-			throw "invalid cell coords";
-		}
-
-		return values[x + y * width];
-	}
-
-	void setValue(int x, int y, char value) {
-		if (!isValidCoord(x, y)) {
-			throw "invalid cell coords";
-		}
-
-		values[x + y * width] = value;
-	}
-
-	void setAllValues(char value) {
-		for (int i = 0; i < width * height; i++) {
-			values[i] = value;
-		}
-	}
-};
+#include "JMatrix.h"
 
 class PixelGrid {
 private:
@@ -86,7 +16,6 @@ private:
 
 public:
 	PixelGrid(Vector2 _pos, float _size, int _cellCount);
-	~PixelGrid();
 
 	std::pair<int, int> getCellCoords(Vector2 screenPos);
 	void setCellValue(int x, int y, char value);

@@ -21,9 +21,15 @@
     <ClCompile Include="PixelGrid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="JMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PixelGrid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="JMatrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
