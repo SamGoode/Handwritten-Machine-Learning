@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "JMatrix.h"
 
+using byte = unsigned char;
 class PixelGrid {
 private:
 	Vector2 pos;
@@ -12,13 +13,15 @@ private:
 
 	float cellSize;
 
-	JMatrix matrix;
+	JMatrix<byte> matrix;
 
 public:
 	PixelGrid(Vector2 _pos, float _size, int _cellCount);
 
+	byte* getDataPtr() { return matrix.getDataPtr(); }
+
 	std::pair<int, int> getCellCoords(Vector2 screenPos);
-	void setCellValue(int x, int y, char value);
+	void setCellValue(int x, int y, byte value);
 
 	void draw();
 };

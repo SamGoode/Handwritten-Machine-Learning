@@ -7,9 +7,7 @@ PixelGrid::PixelGrid(Vector2 _pos, float _size, int _cellCount) {
 
 	cellSize = size / cellCount;
 
-	matrix = JMatrix(cellCount, cellCount);
-	matrix.setAllValues(255);
-	//matrix.setValue(4, 8, 1);
+	matrix = JMatrix<byte>(cellCount, cellCount);
 }
 
 std::pair<int, int> PixelGrid::getCellCoords(Vector2 screenPos) {
@@ -24,7 +22,7 @@ std::pair<int, int> PixelGrid::getCellCoords(Vector2 screenPos) {
 	return std::pair<int, int>(x, y);
 }
 
-void PixelGrid::setCellValue(int x, int y, char value) {
+void PixelGrid::setCellValue(int x, int y, byte value) {
 	matrix.setValue(x, y, value);
 }
 
@@ -32,13 +30,8 @@ void PixelGrid::draw() {
 	// Cell Colours
 	for (int x = 0; x < cellCount; x++) {
 		for (int y = 0; y < cellCount; y++) {
-			//if (matrix.getValue(x, y) == 0) {
-			//	continue;
-			//}
-
-			unsigned char byte = matrix.getValue(x, y);
-
-			DrawRectangle(pos.x + x * cellSize, pos.y + y * cellSize, cellSize, cellSize, Color{byte, byte, byte, 255});
+			byte value = matrix.getValue(x, y);
+			DrawRectangle(pos.x + x * cellSize, pos.y + y * cellSize, cellSize, cellSize, Color{value, value, value, 255});
 		}
 	}
 
