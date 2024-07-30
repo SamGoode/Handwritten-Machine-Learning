@@ -96,6 +96,22 @@ public:
 		return result;
 	}
 
+	JMatrix add(JMatrix other) {
+		if (columns != other.columns || rows != other.rows) {
+			throw "invalid matrix dimensions";
+		}
+
+		JMatrix result(columns, rows);
+		for (int row = 0; row < rows; row++) {
+			for (int col = 0; col < columns; col++) {
+				T value = getValue(col, row) + other.getValue(col, row);
+				result.setValue(col, row, value);
+			}
+		}
+
+		return result;
+	}
+
 	std::string toString() {
 		std::string str;
 

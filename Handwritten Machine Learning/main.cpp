@@ -3,9 +3,12 @@
 #include "rlgl.h"
 #include "PixelGrid.h"
 #include "MnistParser.h"
+#include "NeuralNet.h"
 #include <iostream>
 
 int main() {
+    srand(32498784);
+
     int screenWidth = 1600;
     int screenHeight = 800;
 
@@ -57,6 +60,9 @@ int main() {
     
     PixelGrid grid({ 100, 100 }, 600, 28);
 
+    NeuralNet neuralNet = NeuralNet();
+    JMatrix<float> outputVector;
+
     int currentImageIndex = 0;
     bool updateGrid = true;
 
@@ -82,9 +88,17 @@ int main() {
         }
 
         if (updateGrid) {
-            int offset = currentImageIndex * dataset.getRowCount() * dataset.getColumnCount();
+            int pixelCount = dataset.getColumnCount() * dataset.getRowCount();
+            int offset = currentImageIndex * pixelCount;
+            std::memcpy(grid.getDataPtr(), dataset.getImageBuffer() + offset, sizeof(byte) * pixelCount);
 
-            std::memcpy(grid.getDataPtr(), dataset.getImageBuffer() + offset, sizeof(byte) * dataset.getRowCount() * dataset.getColumnCount());
+            JMatrix<float> inputVector(1, pixelCount);
+            for (int i = 0; i < pixelCount; i++) {
+                byte byteValue = grid.getDataPtr()[i];
+                inputVector.setValue(0, i, (float)byteValue);
+            }
+
+            outputVector = neuralNet.computeOutput(inputVector);
 
             updateGrid = false;
         }
@@ -104,6 +118,13 @@ int main() {
 
         std::string expectedValueStr = "Expected Value: " + std::to_string(dataset.getLabelBuffer()[currentImageIndex]);
         DrawText(expectedValueStr.c_str(), 200, 40, 20, BLUE);
+
+        for (int i = 0; i < 10; i++) {
+            float value = outputVector.getValue(0, i);
+            std::string str = std::to_string(value);
+
+            DrawText(str.c_str(), 800, 100 + 20 * i, 20, BLUE);
+        }
 
         DrawFPS(10, 10);
 
