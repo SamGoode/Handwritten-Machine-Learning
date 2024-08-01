@@ -6,40 +6,93 @@
 #include "NeuralNet.h"
 #include <iostream>
 
-float costFunction(int expectedValue, JMatrix<float> confidenceValues) {
+float costFunction(float givenValue, float desiredValue) {
+    float difference = givenValue - desiredValue;
+    return difference * difference;
+}
+
+float computeCostSum(int expectedValue, JMatrix<float> confidenceValues) {
     float cost = 0;
 
     for (int i = 0; i < 10; i++) {
         float desiredConfidenceLevel = 0;
 
         if (i == expectedValue) {
-            desiredConfidenceLevel == 1;
+            desiredConfidenceLevel = 1;
         }
 
-        float difference = desiredConfidenceLevel - confidenceValues.getValue(0, i);
-
-        cost += difference * difference;
+        cost += costFunction(confidenceValues.getValue(0, i), desiredConfidenceLevel);
     }
 
     return cost;
 }
 
+float derivativeCost(float givenValue, float desiredValue) {
+    return 2 * (givenValue - desiredValue);
+}
+
+float derivativeSigmoid(float input) {
+    float e = 2.71828;
+
+    return 1 / (2 + pow(e, input) + pow(e, -input));
+}
+
+void train(NeuralNet& neuralNet, int expectedValue) {
+    float learningRate = 0.2f;
+
+    JMatrix<float>& outputLayer = neuralNet.getOutputLayer();
+
+    // Backpropagated error vector
+    JMatrix<float> errorVector = JMatrix<float>(1, outputLayer.getColumnCount());
+    for (int i = 0; i < errorVector.getColumnCount(); i++) {
+        //index of output layer matches its corresponding value (0-9)
+        float desiredConfidenceValue = 0;
+        if (i == expectedValue) {
+            desiredConfidenceValue = 1;
+        }
+
+        float error = derivativeCost(outputLayer.getValue(0, i), desiredConfidenceValue);
+        errorVector.setValue(0, i, error);
+    }
+
+    // 3 2 1 0
+    int layers = neuralNet.getLayerCount();
+    for (int matrixIndex = layers - 2; matrixIndex >= 0; matrixIndex--) {
+        for (int i = 0; i < errorVector.getColumnCount(); i++) {
+            float value = derivativeSigmoid(errorVector.getValue(0, i));
+            errorVector.setValue(0, i, value);
+        }
+
+        JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(matrixIndex);
+        JMatrix<float>& previousLayer = neuralNet.getNeuronLayer(matrixIndex);
+        for (int row = 0; row < weightMatrix.getRowCount(); row++) {
+            float currentNeuronError = errorVector.getValue(0, row);
+
+            for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
+                float newValue = weightMatrix.getValue(col, row) + (previousLayer.getValue(0, col) * currentNeuronError * learningRate);
+                weightMatrix.setValue(col, row, newValue);
+            }
+        }
+
+        JMatrix<float> weightMatrixT = weightMatrix.transpose();
+        errorVector = weightMatrixT.multiply(errorVector);
+    }
+}
+
 void loadGridFromDataset(PixelGrid& pixelGrid, MnistParser& dataset, int imageIndex) {
-    int pixelCount = 784;
+    int pixelCount = dataset.getColumnCount() * dataset.getRowCount();
     int offset = imageIndex * pixelCount;
     std::memcpy(pixelGrid.getDataPtr(), dataset.getImageBuffer() + offset, sizeof(byte) * pixelCount);
 }
 
-JMatrix<float> runNeuralNet(NeuralNet& neuralNet, PixelGrid& pixelGrid) {
-    int pixelCount = 784;
+void loadGridValuesIntoNN(NeuralNet& neuralNet, PixelGrid& pixelGrid) {
+    JMatrix<float>& inputLayer = neuralNet.getInputLayer();
+    int pixelCount = inputLayer.getRowCount();
 
-    JMatrix<float> inputVector(1, pixelCount);
     for (int i = 0; i < pixelCount; i++) {
         byte byteValue = pixelGrid.getDataPtr()[i];
-        inputVector.setValue(0, i, (float)byteValue);
+        inputLayer.setValue(0, i, (float)byteValue);
     }
-
-    return neuralNet.computeOutput(inputVector);
 }
 
 int main() {
@@ -66,29 +119,6 @@ int main() {
         labelsFileName = "datasets/t10k-labels.idx1-ubyte";
     }
 
-    // Matrix Class test
-    JMatrix<int> mat1(3, 2);
-    JMatrix<int> mat2(2, 3);
-    int value = 0;
-    for (int i = 0; i < 2; i++) {
-        for (int n = 0; n < 3; n++) {
-            value++;
-            mat1.setValue(n, i, value);
-        }
-    }
-    for (int i = 0; i < 3; i++) {
-        for (int n = 0; n < 2; n++) {
-            value++;
-            mat2.setValue(n, i, value);
-        }
-    }
-
-    std::cout << mat1.toString();
-    std::cout << mat2.toString();
-
-    JMatrix<int> resultMat = mat1.multiply(mat2);
-    std::cout << resultMat.toString();
-
     MnistParser dataset;
 
     dataset.loadImageBuffer(imagesFileName);
@@ -98,8 +128,9 @@ int main() {
     loadGridFromDataset(grid, dataset, 0);
 
     NeuralNet neuralNet = NeuralNet();
-    JMatrix<float> outputVector;
-    outputVector = runNeuralNet(neuralNet, grid);
+    loadGridValuesIntoNN(neuralNet, grid);
+    neuralNet.run();
+
     int expectedValue;
     float evaluatedCost;
 
@@ -115,19 +146,24 @@ int main() {
             if (cellCoords != std::pair<int, int>(-1, -1)) {
                 grid.setCellValue(cellCoords.first, cellCoords.second, 255);
 
-                outputVector = runNeuralNet(neuralNet, grid);
+                loadGridValuesIntoNN(neuralNet, grid);
+                neuralNet.run();
             }
         }
 
         if (IsKeyPressed(KEY_RIGHT) && currentImageIndex < dataset.getImageCount() - 1) {
             currentImageIndex++;
             loadGridFromDataset(grid, dataset, currentImageIndex);
-            outputVector = runNeuralNet(neuralNet, grid);
+            
+            loadGridValuesIntoNN(neuralNet, grid);
+            neuralNet.run();
         }
         else if (IsKeyPressed(KEY_LEFT) && currentImageIndex > 0) {
             currentImageIndex--;
             loadGridFromDataset(grid, dataset, currentImageIndex);
-            outputVector = runNeuralNet(neuralNet, grid);
+            
+            loadGridValuesIntoNN(neuralNet, grid);
+            neuralNet.run();
         }
 
         if (IsKeyPressed(KEY_SPACE)) {
@@ -135,7 +171,7 @@ int main() {
         }
 
         expectedValue = dataset.getLabelBuffer()[currentImageIndex];
-        evaluatedCost = costFunction(expectedValue, outputVector);
+        evaluatedCost = computeCostSum(expectedValue, neuralNet.getOutputLayer());
         
         // Drawing
         BeginDrawing();
@@ -158,7 +194,7 @@ int main() {
 
         DrawText("Confidence Values:", 800, 100, 20, BLUE);
         for (int i = 0; i < 10; i++) {
-            float value = outputVector.getValue(0, i);
+            float value = neuralNet.getOutputLayer().getValue(0, i);
             std::string str = std::to_string(i) + " " + std::to_string(value);
 
             DrawText(str.c_str(), 800, 140 + 30 * i, 20, BLUE);

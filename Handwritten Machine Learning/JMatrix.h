@@ -48,6 +48,14 @@ public:
 		return values;
 	}
 
+	int getColumnCount() {
+		return columns;
+	}
+
+	int getRowCount() {
+		return rows;
+	}
+
 	bool isValidCoord(int x, int y) {
 		return !(x < 0 || x >= columns || y < 0 || y >= rows);
 	}
@@ -106,6 +114,19 @@ public:
 			for (int col = 0; col < columns; col++) {
 				T value = getValue(col, row) + other.getValue(col, row);
 				result.setValue(col, row, value);
+			}
+		}
+
+		return result;
+	}
+
+	JMatrix transpose() {
+		JMatrix result(rows, columns);
+
+		for (int row = 0; row < rows; row++) {
+			for (int col = 0; col < columns; col++) {
+				T value = getValue(col, row);
+				result.setValue(row, col, value);
 			}
 		}
 

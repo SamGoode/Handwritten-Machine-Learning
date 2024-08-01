@@ -19,6 +19,7 @@ private:
 public:
 	PixelGrid(Vector2 _pos, float _size, int _cellCount);
 
+	JMatrix<byte>& getMatrix() { return matrix; }
 	byte* getDataPtr() { return matrix.getDataPtr(); }
 
 	std::pair<int, int> getCellCoords(Vector2 screenPos);
