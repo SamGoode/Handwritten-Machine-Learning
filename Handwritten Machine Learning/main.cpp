@@ -28,7 +28,7 @@ float computeCostSum(int expectedValue, JMatrix<float> confidenceValues) {
 }
 
 float derivativeCost(float givenValue, float desiredValue) {
-    return 2 * (givenValue - desiredValue);
+    return 2 * abs(givenValue - desiredValue);
 }
 
 float derivativeSigmoid(float input) {
@@ -37,14 +37,18 @@ float derivativeSigmoid(float input) {
     return 1 / (2 + pow(e, input) + pow(e, -input));
 }
 
-void train(NeuralNet& neuralNet, int expectedValue) {
-    float learningRate = 0.2f;
+// TODO:
+// 1. add bias vector training (somehow I forgot about them)
+// 2. calculate deltas beforehand (rename error vector to delta)
+//
+//
 
+void train(NeuralNet& neuralNet, int expectedValue, float learningRate) {
     JMatrix<float>& outputLayer = neuralNet.getOutputLayer();
 
     // Backpropagated error vector
-    JMatrix<float> errorVector = JMatrix<float>(1, outputLayer.getColumnCount());
-    for (int i = 0; i < errorVector.getColumnCount(); i++) {
+    JMatrix<float> errorVector = JMatrix<float>(1, outputLayer.getRowCount());
+    for (int i = 0; i < errorVector.getRowCount(); i++) {
         //index of output layer matches its corresponding value (0-9)
         float desiredConfidenceValue = 0;
         if (i == expectedValue) {
@@ -57,25 +61,57 @@ void train(NeuralNet& neuralNet, int expectedValue) {
 
     // 3 2 1 0
     int layers = neuralNet.getLayerCount();
-    for (int matrixIndex = layers - 2; matrixIndex >= 0; matrixIndex--) {
-        for (int i = 0; i < errorVector.getColumnCount(); i++) {
-            float value = derivativeSigmoid(errorVector.getValue(0, i));
-            errorVector.setValue(0, i, value);
+
+    JMatrix<float>* deltaErrors = new JMatrix<float>[layers - 1];
+
+
+    deltaErrors[layers - 2] = errorVector;
+    // 3 2 1
+    for (int matrixIndex = layers - 2; matrixIndex > 0; matrixIndex--) {
+
+        for (int i = 0; i < deltaErrors[matrixIndex].getRowCount(); i++) {
+            float value = derivativeSigmoid(deltaErrors[matrixIndex].getValue(0, i));
+            deltaErrors[matrixIndex].setValue(0, i, value);
         }
 
         JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(matrixIndex);
-        JMatrix<float>& previousLayer = neuralNet.getNeuronLayer(matrixIndex);
-        for (int row = 0; row < weightMatrix.getRowCount(); row++) {
-            float currentNeuronError = errorVector.getValue(0, row);
-
-            for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
-                float newValue = weightMatrix.getValue(col, row) + (previousLayer.getValue(0, col) * currentNeuronError * learningRate);
-                weightMatrix.setValue(col, row, newValue);
-            }
-        }
 
         JMatrix<float> weightMatrixT = weightMatrix.transpose();
-        errorVector = weightMatrixT.multiply(errorVector);
+        deltaErrors[matrixIndex - 1] = weightMatrixT.multiply(deltaErrors[matrixIndex]);
+    }
+    for (int i = 0; i < deltaErrors[0].getRowCount(); i++) {
+        float value = derivativeSigmoid(deltaErrors[0].getValue(0, i));
+        deltaErrors[0].setValue(0, i, value);
+    }
+
+    for (int matrixIndex = layers - 2; matrixIndex >= 0; matrixIndex--) {
+        //for (int i = 0; i < errorVector.getRowCount(); i++) {
+        //    float value = derivativeSigmoid(errorVector.getValue(0, i));
+        //    errorVector.setValue(0, i, value);
+        //}
+
+        JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(matrixIndex);
+        JMatrix<float>& biasVector = neuralNet.getBiasVector(matrixIndex);
+        
+
+        JMatrix<float>& previousLayer = neuralNet.getNeuronLayer(matrixIndex);
+        for (int row = 0; row < weightMatrix.getRowCount(); row++) {
+            //float currentNeuronError = errorVector.getValue(0, row);
+            float currentNeuronError = deltaErrors[matrixIndex].getValue(0, row);
+
+            for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
+                float weightChange = -(previousLayer.getValue(0, col) * currentNeuronError * learningRate);
+                float newWeight = weightMatrix.getValue(col, row) + weightChange;
+                weightMatrix.setValue(col, row, newWeight);
+            }
+
+            float biasChange = -(currentNeuronError * learningRate);
+            float newBias = biasVector.getValue(0, row) + biasChange;
+            biasVector.setValue(0, row, newBias);
+        }
+
+        //JMatrix<float> weightMatrixT = weightMatrix.transpose();
+        //errorVector = weightMatrixT.multiply(errorVector);
     }
 }
 
@@ -125,9 +161,21 @@ int main() {
     dataset.loadLabelBuffer(labelsFileName);
     
     PixelGrid grid({ 100, 100 }, 600, 28);
-    loadGridFromDataset(grid, dataset, 0);
-
     NeuralNet neuralNet = NeuralNet();
+    
+    for (int index = 0; index < 10; index++) {
+        std::cout << "generation: " + std::to_string(index) << std::endl;
+        for (int i = 0; i < 500; i++) {
+            std::cout << "iteration: " + std::to_string(i) << std::endl;
+            int expectedValue = dataset.getLabelBuffer()[index];
+            loadGridFromDataset(grid, dataset, index);
+            loadGridValuesIntoNN(neuralNet, grid);
+            neuralNet.run();
+            train(neuralNet, expectedValue, 0.005f / (i + 1));
+        }
+    }
+
+    loadGridFromDataset(grid, dataset, 0);
     loadGridValuesIntoNN(neuralNet, grid);
     neuralNet.run();
 

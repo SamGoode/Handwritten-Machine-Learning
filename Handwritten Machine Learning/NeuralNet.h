@@ -13,7 +13,7 @@ private:
 	JMatrix<float>* neuronLayers;
 
 	// distance from 0
-	float initValueRange = 4;
+	float initValueRange = 8;
 
 public:
 	NeuralNet() {
@@ -117,6 +117,14 @@ public:
 		}
 
 		return weightMatrices[index];
+	}
+
+	JMatrix<float>& getBiasVector(int index) {
+		if (index < 0 || index >= layers - 1) {
+			throw "out of bounds";
+		}
+
+		return biasVectors[index];
 	}
 
 	JMatrix<float>& getNeuronLayer(int index) {
