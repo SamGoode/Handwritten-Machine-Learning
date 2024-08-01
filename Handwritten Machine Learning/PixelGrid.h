@@ -10,6 +10,7 @@ private:
 	Vector2 pos;
 	float size;
 	int cellCount;
+	bool shouldInvertBlackWhite;
 
 	float cellSize;
 
@@ -22,6 +23,8 @@ public:
 
 	std::pair<int, int> getCellCoords(Vector2 screenPos);
 	void setCellValue(int x, int y, byte value);
+
+	void invertBlackWhite();
 
 	void draw();
 };

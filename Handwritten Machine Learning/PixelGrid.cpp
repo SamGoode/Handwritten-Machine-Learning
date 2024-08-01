@@ -6,6 +6,7 @@ PixelGrid::PixelGrid(Vector2 _pos, float _size, int _cellCount) {
 	cellCount = _cellCount;
 
 	cellSize = size / cellCount;
+	shouldInvertBlackWhite = false;
 
 	matrix = JMatrix<byte>(cellCount, cellCount);
 }
@@ -26,11 +27,20 @@ void PixelGrid::setCellValue(int x, int y, byte value) {
 	matrix.setValue(x, y, value);
 }
 
+void PixelGrid::invertBlackWhite() {
+	shouldInvertBlackWhite = !shouldInvertBlackWhite;
+}
+
 void PixelGrid::draw() {
 	// Cell Colours
 	for (int x = 0; x < cellCount; x++) {
 		for (int y = 0; y < cellCount; y++) {
 			byte value = matrix.getValue(x, y);
+
+			if (shouldInvertBlackWhite) {
+				value = 255 - value;
+			}
+
 			DrawRectangle(pos.x + x * cellSize, pos.y + y * cellSize, cellSize, cellSize, Color{value, value, value, 255});
 		}
 	}

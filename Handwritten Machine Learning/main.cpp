@@ -6,6 +6,42 @@
 #include "NeuralNet.h"
 #include <iostream>
 
+float costFunction(int expectedValue, JMatrix<float> confidenceValues) {
+    float cost = 0;
+
+    for (int i = 0; i < 10; i++) {
+        float desiredConfidenceLevel = 0;
+
+        if (i == expectedValue) {
+            desiredConfidenceLevel == 1;
+        }
+
+        float difference = desiredConfidenceLevel - confidenceValues.getValue(0, i);
+
+        cost += difference * difference;
+    }
+
+    return cost;
+}
+
+void loadGridFromDataset(PixelGrid& pixelGrid, MnistParser& dataset, int imageIndex) {
+    int pixelCount = 784;
+    int offset = imageIndex * pixelCount;
+    std::memcpy(pixelGrid.getDataPtr(), dataset.getImageBuffer() + offset, sizeof(byte) * pixelCount);
+}
+
+JMatrix<float> runNeuralNet(NeuralNet& neuralNet, PixelGrid& pixelGrid) {
+    int pixelCount = 784;
+
+    JMatrix<float> inputVector(1, pixelCount);
+    for (int i = 0; i < pixelCount; i++) {
+        byte byteValue = pixelGrid.getDataPtr()[i];
+        inputVector.setValue(0, i, (float)byteValue);
+    }
+
+    return neuralNet.computeOutput(inputVector);
+}
+
 int main() {
     srand(32498784);
 
@@ -59,12 +95,15 @@ int main() {
     dataset.loadLabelBuffer(labelsFileName);
     
     PixelGrid grid({ 100, 100 }, 600, 28);
+    loadGridFromDataset(grid, dataset, 0);
 
     NeuralNet neuralNet = NeuralNet();
     JMatrix<float> outputVector;
+    outputVector = runNeuralNet(neuralNet, grid);
+    int expectedValue;
+    float evaluatedCost;
 
     int currentImageIndex = 0;
-    bool updateGrid = true;
 
     while (!WindowShouldClose()) {
         // Updates
@@ -74,34 +113,29 @@ int main() {
         std::pair<int, int> cellCoords = grid.getCellCoords(mousePos);
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
             if (cellCoords != std::pair<int, int>(-1, -1)) {
-                grid.setCellValue(cellCoords.first, cellCoords.second, 0);
+                grid.setCellValue(cellCoords.first, cellCoords.second, 255);
+
+                outputVector = runNeuralNet(neuralNet, grid);
             }
         }
 
         if (IsKeyPressed(KEY_RIGHT) && currentImageIndex < dataset.getImageCount() - 1) {
             currentImageIndex++;
-            updateGrid = true;
+            loadGridFromDataset(grid, dataset, currentImageIndex);
+            outputVector = runNeuralNet(neuralNet, grid);
         }
         else if (IsKeyPressed(KEY_LEFT) && currentImageIndex > 0) {
             currentImageIndex--;
-            updateGrid = true;
+            loadGridFromDataset(grid, dataset, currentImageIndex);
+            outputVector = runNeuralNet(neuralNet, grid);
         }
 
-        if (updateGrid) {
-            int pixelCount = dataset.getColumnCount() * dataset.getRowCount();
-            int offset = currentImageIndex * pixelCount;
-            std::memcpy(grid.getDataPtr(), dataset.getImageBuffer() + offset, sizeof(byte) * pixelCount);
-
-            JMatrix<float> inputVector(1, pixelCount);
-            for (int i = 0; i < pixelCount; i++) {
-                byte byteValue = grid.getDataPtr()[i];
-                inputVector.setValue(0, i, (float)byteValue);
-            }
-
-            outputVector = neuralNet.computeOutput(inputVector);
-
-            updateGrid = false;
+        if (IsKeyPressed(KEY_SPACE)) {
+            grid.invertBlackWhite();
         }
+
+        expectedValue = dataset.getLabelBuffer()[currentImageIndex];
+        evaluatedCost = costFunction(expectedValue, outputVector);
         
         // Drawing
         BeginDrawing();
@@ -116,14 +150,18 @@ int main() {
         std::string imageIndexStr = "Image Index: " + std::to_string(currentImageIndex);
         DrawText(imageIndexStr.c_str(), 200, 20, 20, BLUE);
 
-        std::string expectedValueStr = "Expected Value: " + std::to_string(dataset.getLabelBuffer()[currentImageIndex]);
-        DrawText(expectedValueStr.c_str(), 200, 40, 20, BLUE);
+        std::string expectedValueStr = "Expected Value: " + std::to_string(expectedValue);
+        DrawText(expectedValueStr.c_str(), 1200, 120, 20, BLUE);
 
+        std::string costStr = "Evaluated Cost: " + std::to_string(evaluatedCost);
+        DrawText(costStr.c_str(), 1200, 160, 20, BLUE);
+
+        DrawText("Confidence Values:", 800, 100, 20, BLUE);
         for (int i = 0; i < 10; i++) {
             float value = outputVector.getValue(0, i);
-            std::string str = std::to_string(value);
+            std::string str = std::to_string(i) + " " + std::to_string(value);
 
-            DrawText(str.c_str(), 800, 100 + 20 * i, 20, BLUE);
+            DrawText(str.c_str(), 800, 140 + 30 * i, 20, BLUE);
         }
 
         DrawFPS(10, 10);
