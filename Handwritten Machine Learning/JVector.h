@@ -45,16 +45,16 @@ public:
 		return size;
 	}
 
+	T operator[](int index) {
+		return getValue(index);
+	}
+
 	T getValue(int index) {
 		if (index < 0 || index >= size) {
 			throw "out of bounds";
 		}
 
 		return values[index];
-	}
-
-	T operator[](int index) {
-		return getValue(index);
 	}
 
 	void setValue(int index, T value) {

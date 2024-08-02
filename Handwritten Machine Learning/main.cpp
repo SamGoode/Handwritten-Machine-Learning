@@ -48,11 +48,13 @@ void train(NeuralNet& neuralNet, int expectedValue, float learningRate) {
 
     int layers = neuralNet.getLayerCount();
 
-    JMatrix<float>* deltaErrors = new JMatrix<float>[layers - 1];
-    deltaErrors[layers - 2] = JMatrix<float>(1, neuralNet.getOutputLayer().getSize());
+    JVector<float>* deltas = new JVector<float>[layers - 1];
+    //JVector<JVector<float>> deltas(layers - 1);
+    
+    deltas[layers - 2] = JVector<float>(neuralNet.getOutputLayer().getSize());
 
     // Calculate deltas at output layer
-    for (int i = 0; i < deltaErrors[layers - 2].getRowCount(); i++) {
+    for (int i = 0; i < deltas[layers - 2].getSize(); i++) {
         // Index of output layer matches its corresponding value (0-9)
         float desiredConfidenceValue = 0;
         if (i == expectedValue) {
@@ -61,21 +63,25 @@ void train(NeuralNet& neuralNet, int expectedValue, float learningRate) {
 
         float outputNeuronValue = outputLayer[i];
         float derivativeCostValue = derivativeCost(outputNeuronValue, desiredConfidenceValue);
-        float derivativeSigmoidValue = derivativeSigmoid(derivativeCostValue);
+
+        float preActivationSum = neuralNet.getPreActivation(layers - 2)[i];
+        float derivativeSigmoidValue = derivativeSigmoid(preActivationSum);
         float value = derivativeSigmoidValue * derivativeCostValue;
-        deltaErrors[layers - 2].setValue(0, i, value);
+        deltas[layers - 2].setValue(i, value);
     }
 
     // Calculating deltas at hidden layers
     for (int i = 0; i < layers - 2; i++) {
-        int deltaErrorIndex = layers - 3 - i;
-        JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(deltaErrorIndex + 1);
+        int deltaIndex = layers - 3 - i;
+        JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(deltaIndex + 1);
         JMatrix<float> transposedMatrix = weightMatrix.transpose();
-        deltaErrors[deltaErrorIndex] = transposedMatrix.multiply(deltaErrors[deltaErrorIndex + 1]);
+        deltas[deltaIndex] = transposedMatrix.multiply(deltas[deltaIndex + 1]);
 
-        for (int i = 0; i < deltaErrors[deltaErrorIndex].getColumnCount(); i++) {
-            float derivativeSigmoidValue = derivativeSigmoid(deltaErrors[deltaErrorIndex].getValue(0, i));
-            deltaErrors[deltaErrorIndex].setValue(0, i, derivativeSigmoidValue);
+        for (int i = 0; i < deltas[deltaIndex].getSize(); i++) {
+            float preActivationSum = neuralNet.getPreActivation(deltaIndex)[i];
+            float derivativeSigmoidValue = derivativeSigmoid(preActivationSum);
+            float value = deltas[deltaIndex][i] * derivativeSigmoidValue;
+            deltas[deltaIndex].setValue(i, value);
         }
     }
 
@@ -84,11 +90,10 @@ void train(NeuralNet& neuralNet, int expectedValue, float learningRate) {
         JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(i);
         JVector<float>& biasVector = neuralNet.getBiasVector(i);
         JVector<float>& previousLayer = neuralNet.getNeuronLayer(i);
-        JMatrix<float>& deltaError = deltaErrors[i];
+        JVector<float>& delta = deltas[i];
 
         for (int row = 0; row < weightMatrix.getRowCount(); row++) {
-            //float currentNeuronError = errorVector.getValue(0, row);
-            float currentNeuronError = deltaError.getValue(0, row);
+            float currentNeuronError = delta[row];
 
             for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
                 float weightGradient = previousLayer[col] * currentNeuronError;
@@ -102,7 +107,7 @@ void train(NeuralNet& neuralNet, int expectedValue, float learningRate) {
         }
     }
 
-    delete[] deltaErrors;
+    delete[] deltas;
 }
 
 void loadGridFromDataset(PixelGrid& pixelGrid, MnistParser& dataset, int imageIndex) {
@@ -129,7 +134,7 @@ int main() {
 
     InitWindow(screenWidth, screenHeight, "Handwritten Machine Learning");
 
-    SetTargetFPS(240);
+    //SetTargetFPS(240);
 
     bool trainingMode = false;
 
@@ -192,6 +197,14 @@ int main() {
                 neuralNet.run();
             }
         }
+        else if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
+            if (cellCoords != std::pair<int, int>(-1, -1)) {
+                grid.setCellValue(cellCoords.first, cellCoords.second, 0);
+
+                loadGridValuesIntoNN(neuralNet, grid);
+                neuralNet.run();
+            }
+        }
 
         if (IsKeyPressed(KEY_RIGHT) && currentImageIndex < dataset.getImageCount() - 1) {
             currentImageIndex++;
@@ -225,15 +238,18 @@ int main() {
             loadGridFromDataset(grid, dataset, iterations);
             loadGridValuesIntoNN(neuralNet, grid);
             neuralNet.run();
-            train(neuralNet, expected, 0.0001f);
+            train(neuralNet, expected, 0.05f);
 
             iterations++;
         }
 
-        if (iterations >= 1000) {
+        if (iterations >= 10000) {
             training = false;
             iterations = 0;
             epochs++;
+            loadGridFromDataset(grid, dataset, currentImageIndex);
+            loadGridValuesIntoNN(neuralNet, grid);
+            neuralNet.run();
         }
 
 

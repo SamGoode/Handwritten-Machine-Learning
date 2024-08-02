@@ -10,6 +10,7 @@ private:
 	JMatrix<float>* weightMatrices;
 	JVector<float>* biasVectors;
 
+	JVector<float>* preActivationSums;
 	JVector<float>* neuronLayers;
 
 	// distance from 0
@@ -42,6 +43,11 @@ public:
 			}
 		}
 
+		preActivationSums = new JVector<float>[layers - 1];
+		for (int i = 0; i < layers - 1; i++) {
+			preActivationSums[i] = JVector<float>(neuronsPerLayer[i + 1]);
+		}
+
 		neuronLayers = new JVector<float>[layers];
 		for (int i = 0; i < layers; i++) {
 			neuronLayers[i] = JVector<float>(neuronsPerLayer[i]);
@@ -52,6 +58,7 @@ public:
 		delete[] weightMatrices;
 		delete[] biasVectors;
 
+		delete[] preActivationSums;
 		delete[] neuronLayers;
 	}
 
@@ -65,6 +72,11 @@ public:
 		for (int i = 0; i < layers - 1; i++) {
 			weightMatrices[i] = copy.weightMatrices[i];
 			biasVectors[i] = copy.biasVectors[i];
+		}
+
+		preActivationSums = new JVector<float>[layers - 1];
+		for (int i = 0; i < layers - 1; i++) {
+			preActivationSums[i] = copy.preActivationSums[i];
 		}
 
 		neuronLayers = new JVector<float>[layers];
@@ -91,6 +103,11 @@ public:
 		for (int i = 0; i < layers - 1; i++) {
 			weightMatrices[i] = copy.weightMatrices[i];
 			biasVectors[i] = copy.biasVectors[i];
+		}
+
+		preActivationSums = new JVector<float>[layers - 1];
+		for (int i = 0; i < layers - 1; i++) {
+			preActivationSums[i] = copy.preActivationSums[i];
 		}
 
 		neuronLayers = new JVector<float>[layers];
@@ -127,6 +144,14 @@ public:
 		return biasVectors[index];
 	}
 
+	JVector<float>& getPreActivation(int index) {
+		if (index < 0 || index >= layers - 1) {
+			throw "out of bounds";
+		}
+
+		return preActivationSums[index];
+	}
+
 	JVector<float>& getNeuronLayer(int index) {
 		if (index < 0 || index >= layers) {
 			throw "out of bounds";
@@ -149,6 +174,8 @@ public:
 
 			vector = weightMatrices[i].multiply(vector);
 			vector = biasVectors[i].add(vector);
+
+			preActivationSums[i] = vector;
 
 			for (int n = 0; n < neuronsPerLayer[i + 1]; n++) {
 				float sigmoidValue = sigmoidFunction(vector[n]);
