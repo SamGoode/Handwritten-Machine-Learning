@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "JVector.h"
 
 template <typename T>
 class JMatrix {
@@ -30,7 +31,6 @@ public:
 		rows = copy.rows;
 		values = new T[columns * rows];
 		std::memcpy(values, copy.values, sizeof(T) * columns * rows);
-		
 	}
 
 	const JMatrix& operator=(const JMatrix& copy) {
@@ -99,6 +99,24 @@ public:
 
 				result.setValue(col, row, value);
 			}
+		}
+
+		return result;
+	}
+
+	JVector<T> multiply(JVector<T> vec) {
+		if (columns != vec.getSize()) {
+			throw "invalid dimensions";
+		}
+		
+		JVector<T> result(rows);
+
+		for (int row = 0; row < rows; row++) {
+			T value = 0;
+			for (int col = 0; col < columns; col++) {
+				value += getValue(col, row) * vec[col];
+			}
+			result.setValue(row, value);
 		}
 
 		return result;
