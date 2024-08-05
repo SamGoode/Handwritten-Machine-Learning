@@ -6,7 +6,7 @@ PixelGrid::PixelGrid(Vector2 _pos, float _size, int _cellCount) {
 	cellCount = _cellCount;
 
 	cellSize = size / cellCount;
-	shouldInvertBlackWhite = false;
+	shouldInvertBlackWhite = true;
 
 	matrix = JMatrix<byte>(cellCount, cellCount);
 }

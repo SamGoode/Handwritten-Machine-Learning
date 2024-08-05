@@ -78,11 +78,28 @@ public:
 
 		JVector result(size);
 		for (int i = 0; i < size; i++) {
-			T value = 0;
-			value = values[i] + other.values[i];
+			T value = values[i] + other.values[i];
 			result.setValue(i, value);
 		}
 
 		return result;
+	}
+
+	void addOn(JVector other) {
+		if (size != other.size) {
+			throw "invalid vector dimensions";
+		}
+
+		for (int i = 0; i < size; i++) {
+			T value = values[i] + other.values[i];
+			setValue(i, value);
+		}
+	}
+
+	void scale(float scalar) {
+		for (int i = 0; i < size; i++) {
+			T value = values[i] * scalar;
+			setValue(i, value);
+		}
 	}
 };

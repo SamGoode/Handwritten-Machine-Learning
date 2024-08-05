@@ -138,6 +138,28 @@ public:
 		return result;
 	}
 
+	void addOn(JMatrix other) {
+		if (columns != other.columns || rows != other.rows) {
+			throw "invalid matrix dimensions";
+		}
+
+		for (int row = 0; row < rows; row++) {
+			for (int col = 0; col < columns; col++) {
+				T value = getValue(col, row) + other.getValue(col, row);
+				setValue(col, row, value);
+			}
+		}
+	}
+
+	void scale(float scalar) {
+		for (int row = 0; row < rows; row++) {
+			for (int col = 0; col < columns; col++) {
+				T value = getValue(col, row) * scalar;
+				setValue(col, row, value);
+			}
+		}
+	}
+
 	JMatrix transpose() {
 		JMatrix result(rows, columns);
 

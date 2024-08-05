@@ -10,11 +10,16 @@ private:
 	JMatrix<float>* weightMatrices;
 	JVector<float>* biasVectors;
 
-	JVector<float>* preActivationSums;
 	JVector<float>* neuronLayers;
 
+	JVector<float>* preActivationLayers;
+	JVector<float>* layerGradients;
+
+	JMatrix<float>* weightGradients;
+	JVector<float>* biasGradients;
+
 	// distance from 0
-	float initValueRange = 16;
+	float initValueRange = 1.f;
 
 public:
 	NeuralNet() {
@@ -43,14 +48,26 @@ public:
 			}
 		}
 
-		preActivationSums = new JVector<float>[layers - 1];
-		for (int i = 0; i < layers - 1; i++) {
-			preActivationSums[i] = JVector<float>(neuronsPerLayer[i + 1]);
-		}
-
 		neuronLayers = new JVector<float>[layers];
 		for (int i = 0; i < layers; i++) {
 			neuronLayers[i] = JVector<float>(neuronsPerLayer[i]);
+		}
+
+		preActivationLayers = new JVector<float>[layers - 1];
+		layerGradients = new JVector<float>[layers - 1];
+
+		weightGradients = new JMatrix<float>[layers - 1];
+		biasGradients = new JVector<float>[layers - 1];
+
+		for (int i = 0; i < layers - 1; i++) {
+			int inputVectorLength = neuronsPerLayer[i];
+			int outputVectorLength = neuronsPerLayer[i + 1];
+
+			weightGradients[i] = JMatrix<float>(inputVectorLength, outputVectorLength);
+			biasGradients[i] = JVector<float>(outputVectorLength);
+
+			weightGradients[i].setAllValues(0);
+			biasGradients[i].setAllValues(0);
 		}
 	}
 
@@ -58,8 +75,13 @@ public:
 		delete[] weightMatrices;
 		delete[] biasVectors;
 
-		delete[] preActivationSums;
 		delete[] neuronLayers;
+
+		delete[] preActivationLayers;
+		delete[] layerGradients;
+
+		delete[] weightGradients;
+		delete[] biasGradients;
 	}
 
 	NeuralNet(const NeuralNet& copy) {
@@ -74,16 +96,21 @@ public:
 			biasVectors[i] = copy.biasVectors[i];
 		}
 
-		preActivationSums = new JVector<float>[layers - 1];
-		for (int i = 0; i < layers - 1; i++) {
-			preActivationSums[i] = copy.preActivationSums[i];
-		}
-
 		neuronLayers = new JVector<float>[layers];
 		for (int i = 0; i < layers; i++) {
 			neuronLayers[i] = copy.neuronLayers[i];
 		}
 		
+		preActivationLayers = new JVector<float>[layers - 1];
+		layerGradients = new JVector<float>[layers - 1];
+
+		weightGradients = new JMatrix<float>[layers - 1];
+		biasGradients = new JVector<float>[layers - 1];
+		for (int i = 0; i < layers - 1; i++) {
+			weightGradients[i] = copy.weightGradients[i];
+			biasGradients[i] = copy.biasGradients[i];
+		}
+
 		initValueRange = copy.initValueRange;
 	}
 
@@ -92,6 +119,12 @@ public:
 		delete[] biasVectors;
 
 		delete[] neuronLayers;
+
+		delete[] preActivationLayers;
+		delete[] layerGradients;
+
+		delete[] weightGradients;
+		delete[] biasGradients;
 
 		layers = copy.layers;
 		// Add later after implementing dynamic neural net structure
@@ -105,15 +138,16 @@ public:
 			biasVectors[i] = copy.biasVectors[i];
 		}
 
-		preActivationSums = new JVector<float>[layers - 1];
-		for (int i = 0; i < layers - 1; i++) {
-			preActivationSums[i] = copy.preActivationSums[i];
-		}
-
 		neuronLayers = new JVector<float>[layers];
 		for (int i = 0; i < layers; i++) {
 			neuronLayers[i] = copy.neuronLayers[i];
 		}
+		
+		preActivationLayers = new JVector<float>[layers - 1];
+		layerGradients = new JVector<float>[layers - 1];
+
+		weightGradients = new JMatrix<float>[layers - 1];
+		biasGradients = new JVector<float>[layers - 1];
 
 		initValueRange = copy.initValueRange;
 	}
@@ -122,6 +156,16 @@ public:
 		float e = 2.71828;
 
 		return 1 / (1 + pow(e, -value));
+	}
+
+	float derivativeSigmoid(float input) {
+		float e = 2.71828;
+
+		return 1 / (2 + pow(e, input) + pow(e, -input));
+	}
+
+	float derivativeCost(float givenValue, float desiredValue) {
+		return (givenValue - desiredValue);
 	}
 
 	int getLayerCount() {
@@ -149,7 +193,7 @@ public:
 			throw "out of bounds";
 		}
 
-		return preActivationSums[index];
+		return preActivationLayers[index];
 	}
 
 	JVector<float>& getNeuronLayer(int index) {
@@ -175,7 +219,7 @@ public:
 			vector = weightMatrices[i].multiply(vector);
 			vector = biasVectors[i].add(vector);
 
-			preActivationSums[i] = vector;
+			preActivationLayers[i] = vector;
 
 			for (int n = 0; n < neuronsPerLayer[i + 1]; n++) {
 				float sigmoidValue = sigmoidFunction(vector[n]);
@@ -183,6 +227,90 @@ public:
 			}
 
 			neuronLayers[i + 1] = vector;
+		}
+	}
+
+	void train(int expectedValue) {
+		// Calculate deltas at output layer
+		layerGradients[layers - 2] = getOutputLayer();
+		for (int i = 0; i < getOutputLayer().getSize(); i++) {
+			// Index of output layer matches its corresponding value (0-9)
+			float desiredConfidenceValue = 0;
+			if (i == expectedValue) {
+				desiredConfidenceValue = 1;
+			}
+
+			float outputNeuronValue = getOutputLayer()[i];
+			float derivativeCostValue = derivativeCost(outputNeuronValue, desiredConfidenceValue);
+
+			float preActivationSum = getPreActivation(layers - 2)[i];
+			float derivativeSigmoidValue = derivativeSigmoid(preActivationSum);
+			float value = derivativeSigmoidValue * derivativeCostValue;
+			layerGradients[layers - 2].setValue(i, value);
+		}
+
+		// Calculating deltas at hidden layers
+		for (int i = 0; i < layers - 2; i++) {
+			int deltaIndex = layers - 3 - i;
+			JMatrix<float>& weightMatrix = getWeightMatrix(deltaIndex + 1);
+			JMatrix<float> transposedMatrix = weightMatrix.transpose();
+			layerGradients[deltaIndex] = transposedMatrix.multiply(layerGradients[deltaIndex + 1]);
+
+			for (int index = 0; index < layerGradients[deltaIndex].getSize(); index++) {
+				float preActivationSum = getPreActivation(deltaIndex)[index];
+				float derivativeSigmoidValue = derivativeSigmoid(preActivationSum);
+				float value = layerGradients[deltaIndex][index] * derivativeSigmoidValue;
+				layerGradients[deltaIndex].setValue(index, value);
+			}
+		}
+
+		// Adjusting weights and biases
+		for (int i = 0; i < layers - 1; i++) {
+			JMatrix<float>& weightMatrix = getWeightMatrix(i);
+			JVector<float>& biasVector = getBiasVector(i);
+
+			JVector<float>& previousLayer = getNeuronLayer(i);
+			JVector<float>& delta = layerGradients[i];
+
+			JMatrix<float>& weightGradient = weightGradients[i];
+			JVector<float>& biasGradient = biasGradients[i];
+
+			for (int row = 0; row < weightMatrix.getRowCount(); row++) {
+				float activationDerivative = delta[row];
+
+				for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
+					float weightDerivative = previousLayer[col] * activationDerivative;
+					//float newWeight = weightGradient.getValue(col, row) - ((weightDerivative * learningRate) / (float)batchSize);
+					float newWeightDerivative = weightGradient.getValue(col, row) + weightDerivative;
+					weightGradient.setValue(col, row, newWeightDerivative);
+					//weightMatrix.setValue(col, row, newWeight);
+				}
+
+				float biasDerivative = activationDerivative;
+				//float newBias = biasGradient[row] - ((biasDerivative * learningRate) / (float)batchSize);
+				float newBiasDerivative = biasGradient[row] + biasDerivative;
+				biasGradient.setValue(row, biasDerivative);
+				//biasVector.setValue(row, newBias);
+			}
+		}
+	}
+
+	void applyGradients(float learningRate, int batchSize) {
+		for (int i = 0; i < layers - 1; i++) {
+			JMatrix<float>& weightMatrix = weightMatrices[i];
+			JVector<float>& biasVector = biasVectors[i];
+
+			JMatrix<float>& weightGradient = weightGradients[i];
+			JVector<float>& biasGradient = biasGradients[i];
+
+			weightGradient.scale(-learningRate / batchSize);
+			biasGradient.scale(-learningRate / batchSize);
+
+			weightMatrix.addOn(weightGradient);
+			biasVector.addOn(biasGradient);
+
+			weightGradient.setAllValues(0);
+			biasGradient.setAllValues(0);
 		}
 	}
 };
