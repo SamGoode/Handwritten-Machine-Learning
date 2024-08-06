@@ -45,8 +45,12 @@ public:
 		return size;
 	}
 
-	T operator[](int index) {
-		return getValue(index);
+	T& operator[](int index) {
+		if (index < 0 || index >= size) {
+			throw "out of bounds";
+		}
+
+		return values[index];
 	}
 
 	T getValue(int index) {
@@ -83,6 +87,14 @@ public:
 		}
 
 		return result;
+	}
+
+	void addValue(int index, T value) {
+		if (index < 0 || index >= size) {
+			throw "out of bounds";
+		}
+
+		values[index] += value;
 	}
 
 	void addOn(JVector other) {

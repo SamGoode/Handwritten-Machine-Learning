@@ -44,7 +44,7 @@ void loadGridValuesIntoNN(NeuralNet& neuralNet, PixelGrid& pixelGrid) {
 }
 
 int main() {
-    srand(32498784);
+    srand(84352344);
 
     int screenWidth = 1600;
     int screenHeight = 800;
@@ -88,8 +88,8 @@ int main() {
 
     bool training = false;
     float learningRate = 0.001f;
-    int batchSize = 10;
-    int batches = 6000;
+    int batchSize = 20;
+    int batches = 3000;
     int epochs = 50;
 
     int iterationsRan = 0;
@@ -148,6 +148,7 @@ int main() {
         }
 
         if (training) {
+            // Show every individual iteration per frame
             currentImageIndex = batchesRan * batchSize + iterationsRan;
             expectedValue = dataset.getLabelBuffer()[currentImageIndex];
 
@@ -180,6 +181,36 @@ int main() {
                     }
                 }
             }
+
+            // Loop through one batch in one frame
+            //for (int i = 0; i < batchSize; i++) {
+            //    currentImageIndex = batchesRan * batchSize + i;
+            //    expectedValue = dataset.getLabelBuffer()[currentImageIndex];
+
+            //    loadGridFromDataset(grid, dataset, currentImageIndex);
+            //    loadGridValuesIntoNN(neuralNet, grid);
+            //    neuralNet.run();
+            //    neuralNet.train(expectedValue);
+            //}
+
+            //neuralNet.applyGradients(learningRate, batchSize);
+
+            //batchesRan++;
+            //if (batchesRan == batches) {
+            //    batchesRan = 0;
+
+            //    epochsRan++;
+
+            //    if (epochsRan == epochs) {
+            //        training = false;
+
+            //        currentImageIndex = 0;
+            //        expectedValue = dataset.getLabelBuffer()[currentImageIndex];
+            //        loadGridFromDataset(grid, dataset, currentImageIndex);
+            //        loadGridValuesIntoNN(neuralNet, grid);
+            //        neuralNet.run();
+            //    }
+            //}
         }
 
         evaluatedCost = computeCostSum(expectedValue, neuralNet.getOutputLayer());

@@ -114,7 +114,7 @@ public:
 		for (int row = 0; row < rows; row++) {
 			T value = 0;
 			for (int col = 0; col < columns; col++) {
-				value += getValue(col, row) * vec[col];
+				value += values[col + row * columns] * vec[col];
 			}
 			result.setValue(row, value);
 		}
@@ -136,6 +136,14 @@ public:
 		}
 
 		return result;
+	}
+
+	void addValue(int x, int y, T value) {
+		if (!isValidCoord(x, y)) {
+			throw "out of bounds";
+		}
+
+		values[x + y * columns] += value;
 	}
 
 	void addOn(JMatrix other) {
@@ -165,9 +173,27 @@ public:
 
 		for (int row = 0; row < rows; row++) {
 			for (int col = 0; col < columns; col++) {
-				T value = getValue(col, row);
-				result.setValue(row, col, value);
+				result.setValue(row, col, getValue(col, row));
 			}
+		}
+
+		return result;
+	}
+
+	// Multiply as if matrix was transposed
+	JVector<T> transposedMultiply(JVector<T> vec) {
+		if (rows != vec.getSize()) {
+			throw "invalid dimensions";
+		}
+
+		JVector<T> result(columns);
+
+		for (int col = 0; col < columns; col++) {
+			T value = 0;
+			for (int row = 0; row < rows; row++) {
+				value += values[row + col * rows] * vec[row];
+			}
+			result.setValue(col, value);
 		}
 
 		return result;

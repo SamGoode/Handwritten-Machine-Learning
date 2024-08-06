@@ -246,21 +246,22 @@ public:
 			float preActivationSum = getPreActivation(layers - 2)[i];
 			float derivativeSigmoidValue = derivativeSigmoid(preActivationSum);
 			float value = derivativeSigmoidValue * derivativeCostValue;
-			layerGradients[layers - 2].setValue(i, value);
+			layerGradients[layers - 2][i] = value;
 		}
 
 		// Calculating deltas at hidden layers
 		for (int i = 0; i < layers - 2; i++) {
 			int deltaIndex = layers - 3 - i;
 			JMatrix<float>& weightMatrix = getWeightMatrix(deltaIndex + 1);
-			JMatrix<float> transposedMatrix = weightMatrix.transpose();
-			layerGradients[deltaIndex] = transposedMatrix.multiply(layerGradients[deltaIndex + 1]);
+			//JMatrix<float> transposedMatrix = weightMatrix.transpose();
+			//layerGradients[deltaIndex] = transposedMatrix.multiply(layerGradients[deltaIndex + 1]);
+			layerGradients[deltaIndex] = weightMatrix.transposedMultiply(layerGradients[deltaIndex + 1]);
 
 			for (int index = 0; index < layerGradients[deltaIndex].getSize(); index++) {
 				float preActivationSum = getPreActivation(deltaIndex)[index];
 				float derivativeSigmoidValue = derivativeSigmoid(preActivationSum);
 				float value = layerGradients[deltaIndex][index] * derivativeSigmoidValue;
-				layerGradients[deltaIndex].setValue(index, value);
+				layerGradients[deltaIndex][index] = value;
 			}
 		}
 
@@ -280,16 +281,18 @@ public:
 
 				for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
 					float weightDerivative = previousLayer[col] * activationDerivative;
+					//float newWeightDerivative = weightGradient.getValue(col, row) + weightDerivative;
+					//weightGradient.setValue(col, row, newWeightDerivative);
+					weightGradient.addValue(col, row, weightDerivative);
 					//float newWeight = weightGradient.getValue(col, row) - ((weightDerivative * learningRate) / (float)batchSize);
-					float newWeightDerivative = weightGradient.getValue(col, row) + weightDerivative;
-					weightGradient.setValue(col, row, newWeightDerivative);
 					//weightMatrix.setValue(col, row, newWeight);
 				}
 
 				float biasDerivative = activationDerivative;
+				//float newBiasDerivative = biasGradient[row] + biasDerivative;
+				//biasGradient.setValue(row, newBiasDerivative);
+				biasGradient.addValue(row, biasDerivative);
 				//float newBias = biasGradient[row] - ((biasDerivative * learningRate) / (float)batchSize);
-				float newBiasDerivative = biasGradient[row] + biasDerivative;
-				biasGradient.setValue(row, biasDerivative);
 				//biasVector.setValue(row, newBias);
 			}
 		}
