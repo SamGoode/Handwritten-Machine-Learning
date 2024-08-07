@@ -44,7 +44,7 @@ void loadGridValuesIntoNN(NeuralNet& neuralNet, PixelGrid& pixelGrid) {
 }
 
 int main() {
-    srand(84352344);
+    srand(80538245);
 
     int screenWidth = 1600;
     int screenHeight = 800;
@@ -87,10 +87,10 @@ int main() {
     int currentImageIndex = 0;
 
     bool training = false;
-    float learningRate = 0.01f;
-    int batchSize = 50;
-    int batches = 1200;
-    int epochs = 10;
+    float learningRate = 0.001f;
+    int batchSize = 2;
+    int batches = 1;
+    int epochs = 5000;
 
     int iterationsRan = 0;
     int batchesRan = 0;
@@ -160,7 +160,7 @@ int main() {
             iterationsRan++;
 
             if (iterationsRan == batchSize) {
-                neuralNet.applyGradients(learningRate, batchSize);
+                neuralNet.applyGradients(learningRate, 1);
 
                 iterationsRan = 0;
 

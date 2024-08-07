@@ -3,11 +3,7 @@
 
 class NeuralNet {
 private:
-	// includes input and output layers
-	//int layers = 5;
-	//int neuronsPerLayer[5] = { 784, 300, 200, 100, 10 };
 	int hiddenLayerCount = 3;
-	//int* neuronsPerLayer;
 
 	JMatrix<float>* weightMatrices;
 	JVector<float>* biasVectors;
@@ -16,7 +12,6 @@ private:
 	JVector<float> outputLayer;
 	JVector<float>* hiddenLayers;
 
-	//JVector<float>* preActivationLayers;
 	JVector<float>* layerGradients;
 
 	JMatrix<float>* weightGradients;
@@ -24,6 +19,7 @@ private:
 
 	// distance from 0
 	float initValueRange = 1.f;
+	float initValueRangeBias = 0.2f;
 
 public:
 	NeuralNet() {}
@@ -67,18 +63,12 @@ public:
 			// bias vector initialisation
 			biasVectors[i] = JVector<float>(outputVectorLength);
 			for (int index = 0; index < biasVectors[i].getSize(); index++) {
-				float randValue = ((rand() / (float)RAND_MAX) * initValueRange * 2) - initValueRange;
+				float randValue = ((rand() / (float)RAND_MAX) * initValueRangeBias * 2) - initValueRangeBias;
 
 				biasVectors[i].setValue(index, randValue);
 			}
 		}
 
-		//neuronLayers = new JVector<float>[layers];
-		//for (int i = 0; i < layers; i++) {
-		//	neuronLayers[i] = JVector<float>(neuronsPerLayer[i]);
-		//}
-
-		//preActivationLayers = new JVector<float>[hiddenLayerCount + 1];
 		layerGradients = new JVector<float>[hiddenLayerCount + 1];
 
 		weightGradients = new JMatrix<float>[hiddenLayerCount + 1];
@@ -102,7 +92,6 @@ public:
 
 		delete[] hiddenLayers;
 
-		//delete[] preActivationLayers;
 		delete[] layerGradients;
 
 		delete[] weightGradients;
@@ -110,9 +99,6 @@ public:
 	}
 
 	NeuralNet(const NeuralNet& copy) {
-		//layers = copy.layers;
-		// Add later after implementing dynamic neural net structure
-		//neuronsPerLayer = copy.neuronsPerLayer
 		inputLayer = copy.inputLayer;
 		outputLayer = copy.outputLayer;
 
@@ -128,16 +114,7 @@ public:
 			weightMatrices[i] = copy.weightMatrices[i];
 			biasVectors[i] = copy.biasVectors[i];
 		}
-
-		//neuronLayers = new JVector<float>[layers];
-		//for (int i = 0; i < layers; i++) {
-		//	neuronLayers[i] = copy.neuronLayers[i];
-		//}
-		//inputLayer = copy.inputLayer;
-		//outputLayer = copy.outputLayer;
-
 		
-		//preActivationLayers = new JVector<float>[hiddenLayerCount + 1];
 		layerGradients = new JVector<float>[hiddenLayerCount + 1];
 
 		weightGradients = new JMatrix<float>[hiddenLayerCount + 1];
@@ -155,16 +132,11 @@ public:
 		delete[] biasVectors;
 
 		delete[] hiddenLayers;
-
-		//delete[] preActivationLayers;
 		delete[] layerGradients;
 
 		delete[] weightGradients;
 		delete[] biasGradients;
 
-		//layers = copy.layers;
-		// Add later after implementing dynamic neural net structure
-		//neuronsPerLayer = copy.neuronsPerLayer
 		inputLayer = copy.inputLayer;
 		outputLayer = copy.outputLayer;
 
@@ -181,14 +153,7 @@ public:
 			biasVectors[i] = copy.biasVectors[i];
 		}
 
-		//neuronLayers = new JVector<float>[layers];
-		//for (int i = 0; i < layers; i++) {
-		//	neuronLayers[i] = copy.neuronLayers[i];
-		//}
-		//inputLayer = copy.inputLayer;
-		//outputLayer = copy.outputLayer;
 
-		//preActivationLayers = new JVector<float>[hiddenLayerCount + 1];
 		layerGradients = new JVector<float>[hiddenLayerCount + 1];
 
 		weightGradients = new JMatrix<float>[hiddenLayerCount + 1];
@@ -241,14 +206,6 @@ public:
 		return biasVectors[index];
 	}
 
-	//JVector<float>& getPreActivation(int index) {
-	//	if (index < 0 || index >= hiddenLayerCount + 1) {
-	//		throw "out of bounds";
-	//	}
-
-	//	return preActivationLayers[index];
-	//}
-
 	JVector<float>& getInputLayer() {
 		return inputLayer;
 	}
@@ -268,7 +225,6 @@ public:
 	void run() {
 		// For special case where there are no hidden layers
 		if (hiddenLayerCount == 0) {
-			//preActivationLayers[0] = biasVectors[0].add(weightMatrices[0].multiply(inputLayer));
 			JVector<float> vector = biasVectors[0].add(weightMatrices[0].multiply(inputLayer));
 
 			for (int i = 0; i < vector.getSize(); i++) {
@@ -280,7 +236,6 @@ public:
 		}
 
 		// Compute Input Layer into first Hidden layer
-		//preActivationLayers[0] = biasVectors[0].add(weightMatrices[0].multiply(inputLayer));
 		JVector<float> vectorA = biasVectors[0].add(weightMatrices[0].multiply(inputLayer));
 		for (int i = 0; i < vectorA.getSize(); i++) {
 			float sigmoidValue = sigmoidFunction(vectorA[i]);
@@ -291,10 +246,6 @@ public:
 		for (int i = 0; i < hiddenLayerCount - 1; i++) {
 			JVector<float> vector = hiddenLayers[i];
 
-			//vector = weightMatrices[i].multiply(vector);
-			//vector = biasVectors[i].add(vector);
-
-			//preActivationLayers[i + 1] = biasVectors[i + 1].add(weightMatrices[i + 1].multiply(vector));
 			vector = biasVectors[i + 1].add(weightMatrices[i + 1].multiply(vector));
 
 			for (int n = 0; n < vector.getSize(); n++) {
@@ -323,11 +274,9 @@ public:
 				desiredConfidenceValue = 1;
 			}
 
-			float outputNeuronValue = getOutputLayer()[i];
+			float outputNeuronValue = outputLayer[i];
 			float derivativeCostValue = derivativeCost(outputNeuronValue, desiredConfidenceValue);
 
-			//float preActivationSum = getPreActivation(hiddenLayerCount)[i];
-			//float derivativeSigmoidValue = derivativeSigmoid(preActivationSum);
 			float derivativeSigmoidValue = derivativePostSigmoid(outputNeuronValue);
 			float value = derivativeSigmoidValue * derivativeCostValue;
 			layerGradients[hiddenLayerCount][i] = value;
@@ -335,16 +284,11 @@ public:
 
 		// Calculating deltas at hidden layers
 		for (int i = 0; i < hiddenLayerCount; i++) {
-			//int deltaIndex = layers - 3 - i;
 			int deltaIndex = hiddenLayerCount - 1 - i;
-			JMatrix<float>& weightMatrix = getWeightMatrix(deltaIndex + 1);
-			//JMatrix<float> transposedMatrix = weightMatrix.transpose();
-			//layerGradients[deltaIndex] = transposedMatrix.multiply(layerGradients[deltaIndex + 1]);
+			JMatrix<float>& weightMatrix = weightMatrices[deltaIndex + 1];
 			layerGradients[deltaIndex] = weightMatrix.transposedMultiply(layerGradients[deltaIndex + 1]);
 
 			for (int index = 0; index < layerGradients[deltaIndex].getSize(); index++) {
-				//float preActivationSum = getPreActivation(deltaIndex)[index];
-				//float derivativeSigmoidValue = derivativeSigmoid(preActivationSum);
 				float postActivationValue = hiddenLayers[deltaIndex][index];
 				float derivativeSigmoidValue = derivativePostSigmoid(postActivationValue);
 				float value = layerGradients[deltaIndex][index] * derivativeSigmoidValue;
@@ -352,30 +296,7 @@ public:
 			}
 		}
 
-		//// Computing gradient vectors for weights and biases
-		//for (int i = 0; i < hiddenLayerCount + 1; i++) {
-		//	JMatrix<float>& weightMatrix = getWeightMatrix(i);
-		//	JVector<float>& biasVector = getBiasVector(i);
-
-		//	JVector<float>& previousLayer = getNeuronLayer(i);
-		//	
-		//	JVector<float>& delta = layerGradients[i];
-
-		//	JMatrix<float>& weightGradient = weightGradients[i];
-		//	JVector<float>& biasGradient = biasGradients[i];
-
-		//	for (int row = 0; row < weightMatrix.getRowCount(); row++) {
-		//		float activationDerivative = delta[row];
-
-		//		for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
-		//			float weightDerivative = previousLayer[col] * activationDerivative;
-		//			weightGradient.addValue(col, row, weightDerivative);
-		//		}
-
-		//		float biasDerivative = activationDerivative;
-		//		biasGradient.addValue(row, biasDerivative);
-		//	}
-		//}
+		// Computing gradient vectors for weights and biases
 
 		// For special cases where there are no hidden layers
 		if (hiddenLayerCount == 0) {
@@ -410,8 +331,8 @@ public:
 
 		// Compute partial derivatives between hidden layers
 		for (int i = 0; i < hiddenLayerCount - 1; i++) {
-			JMatrix<float>& weightMatrix = getWeightMatrix(i + 1);
-			JVector<float>& biasVector = getBiasVector(i + 1);
+			JMatrix<float>& weightMatrix = weightMatrices[i + 1];
+			JVector<float>& biasVector = biasVectors[i + 1];
 
 			JVector<float>& previousLayer = hiddenLayers[i];
 
@@ -424,7 +345,7 @@ public:
 				float activationDerivative = layerGradient[row];
 
 				for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
-					float weightDerivative = inputLayer[col] * activationDerivative;
+					float weightDerivative = previousLayer[col] * activationDerivative;
 					weightGradient.addValue(col, row, weightDerivative);
 				}
 
@@ -438,7 +359,7 @@ public:
 			float activationDerivative = layerGradients[hiddenLayerCount][row];
 
 			for (int col = 0; col < weightMatrices[hiddenLayerCount].getColumnCount(); col++) {
-				float weightDerivative = inputLayer[col] * activationDerivative;
+				float weightDerivative = hiddenLayers[hiddenLayerCount - 1][col] * activationDerivative;
 				weightGradients[hiddenLayerCount].addValue(col, row, weightDerivative);
 			}
 
