@@ -11,8 +11,8 @@ float costFunction(float givenValue, float desiredValue) {
     return difference * difference * 0.5; //multiply by half so the derivative doesn't have a coefficient
 }
 
-float computeCostSum(int expectedValue, JVector<float> confidenceValues) {
-    float cost = 0;
+float computeMeanError(int expectedValue, JVector<float> confidenceValues) {
+    float sum = 0;
 
     for (int i = 0; i < 10; i++) {
         float desiredConfidenceLevel = 0;
@@ -21,10 +21,10 @@ float computeCostSum(int expectedValue, JVector<float> confidenceValues) {
             desiredConfidenceLevel = 1;
         }
 
-        cost += costFunction(confidenceValues[i], desiredConfidenceLevel);
+        sum += costFunction(confidenceValues[i], desiredConfidenceLevel);
     }
 
-    return cost;
+    return sum / (10 / 2);
 }
 
 void loadGridFromDataset(PixelGrid& pixelGrid, MnistParser& dataset, int imageIndex) {
@@ -73,7 +73,7 @@ int main() {
     dataset.loadLabelBuffer(labelsFileName);
     
     PixelGrid grid({ 100, 100 }, 600, 28);
-    NeuralNet neuralNet = NeuralNet();
+    NeuralNet neuralNet = NeuralNet(5, 784, 300, 200, 100, 10);
 
     int expectedValue;
 
@@ -87,10 +87,10 @@ int main() {
     int currentImageIndex = 0;
 
     bool training = false;
-    float learningRate = 0.001f;
-    int batchSize = 20;
-    int batches = 3000;
-    int epochs = 50;
+    float learningRate = 0.01f;
+    int batchSize = 50;
+    int batches = 1200;
+    int epochs = 10;
 
     int iterationsRan = 0;
     int batchesRan = 0;
@@ -212,8 +212,16 @@ int main() {
             //    }
             //}
         }
+        
+        // Testing loss function
+        //JVector<float> maxError(10);
+        //float testValues[10] = { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 };
+        //for (int i = 0; i < 10; i++) {
+        //    maxError[i] = testValues[i];
+        //}
+        //evaluatedCost = computeMeanError(expectedValue, maxError);
 
-        evaluatedCost = computeCostSum(expectedValue, neuralNet.getOutputLayer());
+        evaluatedCost = computeMeanError(expectedValue, neuralNet.getOutputLayer());
         
         // Drawing
         BeginDrawing();
