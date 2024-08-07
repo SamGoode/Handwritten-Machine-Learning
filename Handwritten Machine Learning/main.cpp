@@ -44,7 +44,7 @@ void loadGridValuesIntoNN(NeuralNet& neuralNet, PixelGrid& pixelGrid) {
 }
 
 int main() {
-    srand(80538245);
+    srand(780538245);
 
     int screenWidth = 1600;
     int screenHeight = 800;
@@ -88,9 +88,10 @@ int main() {
 
     bool training = false;
     float learningRate = 0.001f;
-    int batchSize = 2;
-    int batches = 1;
-    int epochs = 5000;
+    int batchSize = 10;
+    int batches = 6000;
+    int epochs = 50;
+    //try out batch size of 50 later
 
     int iterationsRan = 0;
     int batchesRan = 0;

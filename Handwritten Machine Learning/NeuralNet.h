@@ -19,7 +19,7 @@ private:
 
 	// distance from 0
 	float initValueRange = 1.f;
-	float initValueRangeBias = 0.2f;
+	float initValueRangeBias = 1.f;
 
 public:
 	NeuralNet() {}
