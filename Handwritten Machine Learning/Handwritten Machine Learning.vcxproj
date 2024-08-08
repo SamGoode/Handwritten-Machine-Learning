@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MnistParser.cpp" />
+    <ClCompile Include="NeuralNet.cpp" />
     <ClCompile Include="PixelGrid.cpp" />
   </ItemGroup>
   <ItemGroup>

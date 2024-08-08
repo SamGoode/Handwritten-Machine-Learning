@@ -37,6 +37,17 @@ public:
 		return *this;
 	}
 
+	// For copying when vectors are of the same length and memory reallocation is unnecessary.
+	const JVector& copy(const JVector& copy) {
+		if (size != copy.size) {
+			throw "invalid vector size";
+		}
+
+		std::memcpy(values, copy.values, sizeof(T) * size);
+
+		return *this;
+	}
+
 	T* getDataPtr() {
 		return values;
 	}
@@ -75,43 +86,46 @@ public:
 		}
 	}
 
-	JVector add(JVector other) {
+	JVector add(const JVector& other) {
 		if (size != other.size) {
-			throw "invalid vector dimensions";
+			throw "invalid vector size";
 		}
 
 		JVector result(size);
 		for (int i = 0; i < size; i++) {
-			T value = values[i] + other.values[i];
-			result.setValue(i, value);
+			result[i] = values[i] + other.values[i];
 		}
 
 		return result;
 	}
 
-	void addValue(int index, T value) {
+	const JVector& addValue(int index, T value) {
 		if (index < 0 || index >= size) {
 			throw "out of bounds";
 		}
 
 		values[index] += value;
+
+		return *this;
 	}
 
-	void addOn(JVector other) {
+	const JVector& addOn(const JVector& other) const {
 		if (size != other.size) {
 			throw "invalid vector dimensions";
 		}
 
 		for (int i = 0; i < size; i++) {
-			T value = values[i] + other.values[i];
-			setValue(i, value);
+			values[i] += other.values[i];
 		}
+
+		return *this;
 	}
 
-	void scale(float scalar) {
+	const JVector& scale(float scalar) {
 		for (int i = 0; i < size; i++) {
-			T value = values[i] * scalar;
-			setValue(i, value);
+			values[i] *= scalar;
 		}
+
+		return *this;
 	}
 };

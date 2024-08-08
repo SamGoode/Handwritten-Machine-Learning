@@ -44,6 +44,17 @@ public:
 		return *this;
 	}
 
+	// For copying when matrices are of the same dimensions and memory reallocation is unnecessary.
+	const JMatrix& copy(const JMatrix& copy) {
+		if (columns != copy.columns || rows != copy.rows) {
+			throw "invalid matrix dimensions";
+		}
+
+		std::memcpy(values, copy.values, sizeof(T) * columns * rows);
+
+		return *this;
+	}
+
 	T* getDataPtr() {
 		return values;
 	}
@@ -146,26 +157,26 @@ public:
 		values[x + y * columns] += value;
 	}
 
-	void addOn(JMatrix other) {
+	const JMatrix& addOn(JMatrix other) {
 		if (columns != other.columns || rows != other.rows) {
 			throw "invalid matrix dimensions";
 		}
 
-		for (int row = 0; row < rows; row++) {
-			for (int col = 0; col < columns; col++) {
-				T value = getValue(col, row) + other.getValue(col, row);
-				setValue(col, row, value);
-			}
+		int count = columns * rows;
+		for (int i = 0; i < count; i++) {
+			values[i] += other.values[i];
 		}
+
+		return *this;
 	}
 
-	void scale(float scalar) {
-		for (int row = 0; row < rows; row++) {
-			for (int col = 0; col < columns; col++) {
-				T value = getValue(col, row) * scalar;
-				setValue(col, row, value);
-			}
+	const JMatrix& scale(float scalar) {
+		int count = columns * rows;
+		for (int i = 0; i < count; i++) {
+			values[i] *= scalar;
 		}
+
+		return *this;
 	}
 
 	JMatrix transpose() {

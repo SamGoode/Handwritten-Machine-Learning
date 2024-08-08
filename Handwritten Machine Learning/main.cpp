@@ -5,6 +5,7 @@
 #include "MnistParser.h"
 #include "NeuralNet.h"
 #include <iostream>
+#include <algorithm>
 
 float costFunction(float givenValue, float desiredValue) {
     float difference = givenValue - desiredValue;
@@ -88,11 +89,11 @@ int main() {
 
     bool training = false;
     float learningRate = 0.001f;
-    int batchSize = 10;
-    int batches = 6000;
-    int epochs = 50;
+    int batchSize = 2;
+    int batches = 1;
+    int epochs = 1000;
     //try out batch size of 50 later
-
+    
     int iterationsRan = 0;
     int batchesRan = 0;
     int epochsRan = 0;
@@ -141,6 +142,7 @@ int main() {
             grid.invertBlackWhite();
         }
 
+        // Training implementation for the purpose of being a demo
         if (IsKeyPressed(KEY_T) && !training) {
             training = true;
             iterationsRan = 0;
