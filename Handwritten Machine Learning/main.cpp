@@ -5,14 +5,33 @@
 #include "MnistParser.h"
 #include "NeuralNet.h"
 #include <iostream>
-#include <algorithm>
 
-float costFunction(float givenValue, float desiredValue) {
-    float difference = givenValue - desiredValue;
-    return difference * difference * 0.5; //multiply by half so the derivative doesn't have a coefficient
+//static float costFunction(float givenValue, float desiredValue) {
+//    float difference = givenValue - desiredValue;
+//    return difference * difference * 0.5; //multiply by half so the derivative doesn't have a coefficient
+//}
+//
+//static float computeMeanError(int expectedValue, const JVector<float>& confidenceValues) {
+//    float sum = 0;
+//
+//    for (int i = 0; i < 10; i++) {
+//        float desiredConfidenceLevel = 0;
+//
+//        if (i == expectedValue) {
+//            desiredConfidenceLevel = 1;
+//        }
+//
+//        sum += costFunction(confidenceValues[i], desiredConfidenceLevel);
+//    }
+//
+//    return sum / (10 / 2);
+//}
+
+static float costFunction(float givenValue, float desiredValue) {
+    return -desiredValue * log(givenValue);
 }
 
-float computeMeanError(int expectedValue, JVector<float> confidenceValues) {
+static float computeCrossEntropy(int expectedValue, const JVector<float>& confidenceValues) {
     float sum = 0;
 
     for (int i = 0; i < 10; i++) {
@@ -25,7 +44,7 @@ float computeMeanError(int expectedValue, JVector<float> confidenceValues) {
         sum += costFunction(confidenceValues[i], desiredConfidenceLevel);
     }
 
-    return sum / (10 / 2);
+    return sum;
 }
 
 void loadGridFromDataset(PixelGrid& pixelGrid, MnistParser& dataset, int imageIndex) {
@@ -224,7 +243,8 @@ int main() {
         //}
         //evaluatedCost = computeMeanError(expectedValue, maxError);
 
-        evaluatedCost = computeMeanError(expectedValue, neuralNet.getOutputLayer());
+        //evaluatedCost = computeMeanError(expectedValue, neuralNet.getOutputLayer());
+        evaluatedCost = computeCrossEntropy(expectedValue, neuralNet.getOutputLayer());
         
         // Drawing
         BeginDrawing();

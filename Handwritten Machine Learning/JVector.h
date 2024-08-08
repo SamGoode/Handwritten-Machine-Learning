@@ -64,6 +64,14 @@ public:
 		return values[index];
 	}
 
+	const T& operator[](int index) const {
+		if (index < 0 || index >= size) {
+			throw "out of bounds";
+		}
+
+		return values[index];
+	}
+
 	T getValue(int index) {
 		if (index < 0 || index >= size) {
 			throw "out of bounds";

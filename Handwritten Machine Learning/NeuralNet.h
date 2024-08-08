@@ -15,6 +15,9 @@ private:
 	JMatrix<float>* weightMatrices;
 	JVector<float>* biasVectors;
 
+	//temporary
+	float softMaxSum;
+
 	JVector<float>* layerGradients;
 	JMatrix<float>* weightGradients;
 	JVector<float>* biasGradients;
@@ -29,14 +32,28 @@ public:
 	const NeuralNet& operator=(const NeuralNet& copy);
 
 	static float sigmoidFunction(float value) { return 1 / (1 + pow(2.71828f, -value)); }
+	static void applySigmoid(JVector<float>& vector) { for (int i = 0; i < vector.getSize(); i++) { vector[i] = sigmoidFunction(vector[i]); } }
 	static float derivativeSigmoid(float input) { return 1 / (2 + pow(2.71828f, input) + pow(2.71828f, -input)); }
 	static float derivativePostSigmoid(float input) { return input * (1 - input); }
-	static float derivativeCost(float givenValue, float desiredValue) { return (givenValue - desiredValue); }
+	//static float derivativeCost(float givenValue, float desiredValue) { return (givenValue - desiredValue); }
 
-	static void applySigmoid(JVector<float>& vector) {
+	//temporary
+	void applySoftMax(JVector<float>& vector) {
+		softMaxSum = 0;
 		for (int i = 0; i < vector.getSize(); i++) {
-			vector[i] = sigmoidFunction(vector[i]);
+			vector[i] = pow(2.71828f, vector[i]);
+			softMaxSum += vector[i];
 		}
+
+		vector.scale(1 / softMaxSum);
+	}
+
+	float derivativeSoftMax(int index) {
+		return outputLayer[index] * (1 - softMaxSum);
+	}
+
+	static float derivativeCost(float givenValue, float desiredValue) {
+
 	}
 
 	int getLayerCount() { return hiddenLayerCount + 2; }

@@ -48,6 +48,8 @@ NeuralNet::NeuralNet(int layerCount, ...) {
 		}
 	}
 
+	softMaxSum = 0;
+
 	layerGradients = new JVector<float>[hiddenLayerCount + 1];
 	weightGradients = new JMatrix<float>[hiddenLayerCount + 1];
 	biasGradients = new JVector<float>[hiddenLayerCount + 1];
@@ -144,6 +146,8 @@ const NeuralNet& NeuralNet::operator=(const NeuralNet& copy) {
 		weightGradients[i] = copy.weightGradients[i];
 		biasGradients[i] = copy.biasGradients[i];
 	}
+
+	return *this;
 }
 
 void NeuralNet::run() {
@@ -167,7 +171,8 @@ void NeuralNet::run() {
 
 	// Compute last Hidden Layer into Output Layer
 	outputLayer.copy(weightMatrices[hiddenLayerCount].multiply(hiddenLayers[hiddenLayerCount - 1])).addOn(biasVectors[hiddenLayerCount]);
-	applySigmoid(outputLayer);
+	//applySigmoid(outputLayer);
+	applySoftMax(outputLayer);
 }
 
 void NeuralNet::train(int expectedValue) {
@@ -182,9 +187,13 @@ void NeuralNet::train(int expectedValue) {
 
 		float outputNeuronValue = outputLayer[i];
 		float derivativeCostValue = derivativeCost(outputNeuronValue, desiredConfidenceValue);
-		float derivativeSigmoidValue = derivativePostSigmoid(outputNeuronValue);
 
-		float value = derivativeSigmoidValue * derivativeCostValue;
+		//float derivativeSigmoidValue = derivativePostSigmoid(outputNeuronValue);
+		//float value = derivativeSigmoidValue * derivativeCostValue;
+
+		float derivativeSoftMaxValue = derivativeSoftMax(i);
+		float value = derivativeSoftMaxValue * derivativeCostValue;
+
 		layerGradients[hiddenLayerCount][i] = value;
 	}
 
