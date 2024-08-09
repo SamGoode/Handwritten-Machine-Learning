@@ -52,7 +52,15 @@ public:
 		return values;
 	}
 
+	T* getEnd() {
+		return values + size;
+	}
+
 	int getSize() {
+		return size;
+	}
+
+	const int getSize() const {
 		return size;
 	}
 

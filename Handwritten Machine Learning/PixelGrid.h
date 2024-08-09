@@ -16,6 +16,12 @@ private:
 
 	JMatrix<byte> matrix;
 
+	byte gaussianKernel[3][3] = {
+		{1, 2, 1},
+		{2, 4, 2},
+		{1, 2, 1}
+	};
+
 public:
 	PixelGrid(Vector2 _pos, float _size, int _cellCount);
 
@@ -24,6 +30,10 @@ public:
 
 	std::pair<int, int> getCellCoords(Vector2 screenPos);
 	void setCellValue(int x, int y, byte value);
+	void clearGrid() { matrix.setAllValues(0); }
+
+	void paint(int x, int y);
+	void erase(int x, int y);
 
 	void invertBlackWhite();
 

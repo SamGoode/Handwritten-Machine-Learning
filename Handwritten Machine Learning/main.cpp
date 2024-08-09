@@ -5,6 +5,7 @@
 #include "MnistParser.h"
 #include "NeuralNet.h"
 #include <iostream>
+#include <algorithm>
 
 //static float costFunction(float givenValue, float desiredValue) {
 //    float difference = givenValue - desiredValue;
@@ -63,6 +64,53 @@ void loadGridValuesIntoNN(NeuralNet& neuralNet, PixelGrid& pixelGrid) {
     }
 }
 
+int getHighestIndex(const JVector<float>& vector) {
+    int index = 0;
+    float maxValue = 0;
+    for (int i = 0; i < vector.getSize(); i++) {
+        if (maxValue < vector[i]) {
+            index = i;
+            maxValue = vector[i];
+        }
+    }
+
+    return index;
+}
+
+void saveNeuralNet(NeuralNet& neuralNet, std::string fileName) {
+    std::ofstream fileStream;
+    fileStream.open("nn-saves/nn-data.idx3-ubyte", std::ios::binary);
+
+    int layers = neuralNet.getLayerCount();
+    fileStream.write((char*)&layers, sizeof(layers));
+
+    int inputLayerSize = neuralNet.getInputLayer().getSize();
+    fileStream.write((char*)&inputLayerSize, sizeof(inputLayerSize));
+
+    for (int i = 0; i < layers - 2; i++) {
+        int hiddenLayerSize = neuralNet.getHiddenLayer(i).getSize();
+        fileStream.write((char*)&hiddenLayerSize, sizeof(hiddenLayerSize));
+    }
+
+    int outputLayerSize = neuralNet.getOutputLayer().getSize();
+    fileStream.write((char*)&outputLayerSize, sizeof(outputLayerSize));
+
+    for (int i = 0; i < layers - 1; i++) {
+        JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(i);
+
+        fileStream.write((char*)weightMatrix.getDataPtr(), sizeof(float) * weightMatrix.getColumnCount() * weightMatrix.getRowCount());
+    }
+}
+
+void loadNeuralNet(NeuralNet& neuralNet, std::string fileName) {
+    std::ifstream fileStream;
+    fileStream.open("nn-saves/nn-data.idx3-ubyte", std::ios::binary);
+
+    int layers;
+    fileStream.read((char*)&layers, sizeof(layers));
+    
+}
+
 int main() {
     srand(780538245);
 
@@ -108,14 +156,16 @@ int main() {
 
     bool training = false;
     float learningRate = 0.001f;
-    int batchSize = 2;
-    int batches = 1;
-    int epochs = 1000;
-    //try out batch size of 50 later
+    int batchSize = 50;
+    int batches = 1200;
+    int epochs = 50;
     
     int iterationsRan = 0;
     int batchesRan = 0;
     int epochsRan = 0;
+
+    float previousEpochAccuracy = 0;
+    int correctCount = 0;
 
     while (!WindowShouldClose()) {
         // Updates
@@ -125,7 +175,8 @@ int main() {
         std::pair<int, int> cellCoords = grid.getCellCoords(mousePos);
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
             if (cellCoords != std::pair<int, int>(-1, -1)) {
-                grid.setCellValue(cellCoords.first, cellCoords.second, 255);
+                //grid.setCellValue(cellCoords.first, cellCoords.second, 255);
+                grid.paint(cellCoords.first, cellCoords.second);
 
                 loadGridValuesIntoNN(neuralNet, grid);
                 neuralNet.run();
@@ -133,7 +184,8 @@ int main() {
         }
         else if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
             if (cellCoords != std::pair<int, int>(-1, -1)) {
-                grid.setCellValue(cellCoords.first, cellCoords.second, 0);
+                //grid.setCellValue(cellCoords.first, cellCoords.second, 0);
+                grid.erase(cellCoords.first, cellCoords.second);
 
                 loadGridValuesIntoNN(neuralNet, grid);
                 neuralNet.run();
@@ -155,6 +207,10 @@ int main() {
             loadGridFromDataset(grid, dataset, currentImageIndex);
             loadGridValuesIntoNN(neuralNet, grid);
             neuralNet.run();
+        }
+
+        if (IsKeyPressed(KEY_C)) {
+            grid.clearGrid();
         }
 
         if (IsKeyPressed(KEY_SPACE)) {
@@ -179,6 +235,10 @@ int main() {
             neuralNet.run();
             neuralNet.train(expectedValue);
 
+            if (getHighestIndex(neuralNet.getOutputLayer()) == expectedValue) {
+                correctCount++;
+            }
+
             iterationsRan++;
 
             if (iterationsRan == batchSize) {
@@ -189,6 +249,9 @@ int main() {
                 batchesRan++;
                 if (batchesRan == batches) {
                     batchesRan = 0;
+
+                    previousEpochAccuracy = (float)correctCount / (batches * batchSize);
+                    correctCount = 0;
 
                     epochsRan++;
 
@@ -268,13 +331,30 @@ int main() {
         std::string trainingData = "Training Info:\n\nEpochs ran: " + std::to_string(epochsRan) + "\n\nBatches ran: " + std::to_string(batchesRan) + "\n\nIterations ran: " + std::to_string(iterationsRan);
         DrawText(trainingData.c_str(), 1000, 200, 20, RED);
 
+        JVector<std::pair<int, float>> confidenceValues(neuralNet.getOutputLayer().getSize());
+        for (int i = 0; i < confidenceValues.getSize(); i++) {
+            confidenceValues[i] = { i, neuralNet.getOutputLayer()[i] };
+        }
+        std::sort(confidenceValues.getDataPtr(), confidenceValues.getEnd(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second > b.second; });
+
         DrawText("Confidence Values:", 800, 100, 20, BLUE);
         for (int i = 0; i < 10; i++) {
-            float value = neuralNet.getOutputLayer()[i];
-            std::string str = std::to_string(i) + " " + std::to_string(value);
+            float value = confidenceValues[i].second;//neuralNet.getOutputLayer()[i];
+
+            std::string str = std::to_string(confidenceValues[i].first) + " " + std::to_string(value);
 
             DrawText(str.c_str(), 800, 140 + 30 * i, 20, BLUE);
         }
+
+        std::string predictStr = "Predicted Number: " + std::to_string(confidenceValues[0].first);
+        DrawText(predictStr.c_str(), 800, 500, 20, BLUE);
+
+        float accuracy = (float)correctCount / (iterationsRan + batchesRan * batchSize);
+        if ((iterationsRan + batchesRan * batchSize) == 0) {
+            accuracy = 0;
+        }
+        std::string accuracyStr = "Previous Epoch Accuracy: " + std::to_string(previousEpochAccuracy) + "\nCurrent Epoch Accuracy: " + std::to_string(accuracy);
+        DrawText(accuracyStr.c_str(), 800, 520, 20, GREEN);
 
         DrawFPS(10, 10);
 
