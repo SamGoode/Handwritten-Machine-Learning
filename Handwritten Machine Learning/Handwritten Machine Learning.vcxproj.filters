@@ -44,5 +44,11 @@
     <ClInclude Include="JVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NNMathLib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NNFileManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

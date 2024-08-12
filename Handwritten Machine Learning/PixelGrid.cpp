@@ -11,6 +11,12 @@ PixelGrid::PixelGrid(Vector2 _pos, float _size, int _cellCount) {
 	matrix = JMatrix<byte>(cellCount, cellCount);
 }
 
+void PixelGrid::loadDatasetImage(MnistParser& dataset, int imageIndex) {
+	int pixelCount = dataset.getColumnCount() * dataset.getRowCount();
+	int offset = imageIndex * pixelCount;
+	std::memcpy(matrix.getDataPtr(), dataset.getImageBuffer() + offset, sizeof(byte) * pixelCount);
+}
+
 std::pair<int, int> PixelGrid::getCellCoords(Vector2 screenPos) {
 	int x = floor((screenPos.x - pos.x) / cellSize);
 	int y = floor((screenPos.y - pos.y) / cellSize);

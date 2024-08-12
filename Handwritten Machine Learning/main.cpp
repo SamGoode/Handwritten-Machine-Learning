@@ -1,155 +1,12 @@
 #include <string>
 #include "raylib.h"
 #include "rlgl.h"
-#include "PixelGrid.h"
-#include "MnistParser.h"
-#include "NeuralNet.h"
-#include <iostream>
 #include <algorithm>
-
-//static float costFunction(float givenValue, float desiredValue) {
-//    float difference = givenValue - desiredValue;
-//    return difference * difference * 0.5; //multiply by half so the derivative doesn't have a coefficient
-//}
-//
-//static float computeMeanError(int expectedValue, const JVector<float>& confidenceValues) {
-//    float sum = 0;
-//
-//    for (int i = 0; i < 10; i++) {
-//        float desiredConfidenceLevel = 0;
-//
-//        if (i == expectedValue) {
-//            desiredConfidenceLevel = 1;
-//        }
-//
-//        sum += costFunction(confidenceValues[i], desiredConfidenceLevel);
-//    }
-//
-//    return sum / (10 / 2);
-//}
-
-static float costFunction(float givenValue, float desiredValue) {
-    return -desiredValue * log(givenValue);
-}
-
-static float computeCrossEntropy(int expectedValue, const JVector<float>& confidenceValues) {
-    float sum = 0;
-
-    for (int i = 0; i < 10; i++) {
-        float desiredConfidenceLevel = 0;
-
-        if (i == expectedValue) {
-            desiredConfidenceLevel = 1;
-        }
-
-        sum += costFunction(confidenceValues[i], desiredConfidenceLevel);
-    }
-
-    return sum;
-}
-
-void loadGridFromDataset(PixelGrid& pixelGrid, MnistParser& dataset, int imageIndex) {
-    int pixelCount = dataset.getColumnCount() * dataset.getRowCount();
-    int offset = imageIndex * pixelCount;
-    std::memcpy(pixelGrid.getDataPtr(), dataset.getImageBuffer() + offset, sizeof(byte) * pixelCount);
-}
-
-void loadGridValuesIntoNN(NeuralNet& neuralNet, PixelGrid& pixelGrid) {
-    JVector<float>& inputLayer = neuralNet.getInputLayer();
-    int pixelCount = inputLayer.getSize();
-
-    for (int i = 0; i < pixelCount; i++) {
-        byte byteValue = pixelGrid.getDataPtr()[i];
-        inputLayer.setValue(i, (float)byteValue);
-    }
-}
-
-int getHighestIndex(const JVector<float>& vector) {
-    int index = 0;
-    float maxValue = 0;
-    for (int i = 0; i < vector.getSize(); i++) {
-        if (maxValue < vector[i]) {
-            index = i;
-            maxValue = vector[i];
-        }
-    }
-
-    return index;
-}
-
-void saveNeuralNet(NeuralNet& neuralNet) {
-    std::ofstream fileStream;
-    fileStream.open("nn-saves/nn-data.idx3-ubyte", std::ios::binary | std::ios::trunc);
-
-    std::cout << "file ";
-    if (fileStream.is_open()) {
-        std::cout << "successfully opened.";
-    }
-    else {
-        std::cout << "failed to open.";
-    }
-    std::cout << std::endl;
-
-    int layers = neuralNet.getLayerCount();
-    fileStream.write((char*)&layers, sizeof(layers));
-
-    int inputLayerSize = neuralNet.getInputLayer().getSize();
-    fileStream.write((char*)&inputLayerSize, sizeof(inputLayerSize));
-
-    for (int i = 0; i < layers - 2; i++) {
-        int hiddenLayerSize = neuralNet.getHiddenLayer(i).getSize();
-        fileStream.write((char*)&hiddenLayerSize, sizeof(hiddenLayerSize));
-    }
-
-    int outputLayerSize = neuralNet.getOutputLayer().getSize();
-    fileStream.write((char*)&outputLayerSize, sizeof(outputLayerSize));
-
-    for (int i = 0; i < layers - 1; i++) {
-        JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(i);
-        JVector<float>& biasVector = neuralNet.getBiasVector(i);
-
-        fileStream.write((char*)weightMatrix.getDataPtr(), sizeof(float) * weightMatrix.getColumnCount() * weightMatrix.getRowCount());
-        fileStream.write((char*)biasVector.getDataPtr(), sizeof(float) * biasVector.getSize());
-    }
-
-    fileStream.close();
-}
-
-void loadNeuralNet(NeuralNet& neuralNet) {
-    std::ifstream fileStream;
-    fileStream.open("nn-saves/nn-data.idx3-ubyte", std::ios::binary);
-
-    std::cout << "file ";
-    if (fileStream.is_open()) {
-        std::cout << "successfully opened.";
-    }
-    else {
-        std::cout << "failed to open.";
-    }
-    std::cout << std::endl;
-
-    int layers;
-    fileStream.read((char*)&layers, sizeof(layers));
-    
-    if (layers < 2) {
-        throw "not enough neural net layers";
-    }
-
-    int* neuronsPerLayer = new int[layers];
-    fileStream.read((char*)neuronsPerLayer, sizeof(int) * layers);
-
-    neuralNet = NeuralNet(layers, neuronsPerLayer);
-
-    for (int i = 0; i < layers - 1; i++) {
-        JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(i);
-        JVector<float>& biasVector = neuralNet.getBiasVector(i);
-
-        fileStream.read((char*)weightMatrix.getDataPtr(), sizeof(float) * weightMatrix.getColumnCount() * weightMatrix.getRowCount());
-        fileStream.read((char*)biasVector.getDataPtr(), sizeof(float) * biasVector.getSize());
-    }
-    
-    fileStream.close();
-}
+#include "MnistParser.h"
+#include "PixelGrid.h"
+#include "NeuralNet.h"
+#include "NNMathLib.h"
+#include "NNFileManager.h"
 
 int main() {
     srand(780538245);
@@ -186,19 +43,17 @@ int main() {
     int expectedValue;
 
     expectedValue = dataset.getLabelBuffer()[0];
-    loadGridFromDataset(grid, dataset, 0);
-    loadGridValuesIntoNN(neuralNet, grid);
+    grid.loadDatasetImage(dataset, 0);
+    neuralNet.loadInGrid(grid);
     neuralNet.run();
-
-    float evaluatedCost;
 
     int currentImageIndex = 0;
 
     bool training = false;
     float learningRate = 0.001f;
-    int batchSize = 50;
-    int batches = 1200;
-    int epochs = 50;
+    int batchSize = 10;
+    int batches = 1;
+    int epochs = 1000;
     
     int iterationsRan = 0;
     int batchesRan = 0;
@@ -219,7 +74,7 @@ int main() {
             if (cellCoords != std::pair<int, int>(-1, -1) && cellCoords != prevCellCoords) {
                 grid.paint(cellCoords.first, cellCoords.second, 40);
 
-                loadGridValuesIntoNN(neuralNet, grid);
+                neuralNet.loadInGrid(grid);
                 neuralNet.run();
 
                 prevCellCoords = cellCoords;
@@ -229,7 +84,7 @@ int main() {
             if (cellCoords != std::pair<int, int>(-1, -1) && cellCoords != prevCellCoords) {
                 grid.erase(cellCoords.first, cellCoords.second, 30);
 
-                loadGridValuesIntoNN(neuralNet, grid);
+                neuralNet.loadInGrid(grid);
                 neuralNet.run();
 
                 prevCellCoords = cellCoords;
@@ -240,16 +95,16 @@ int main() {
             currentImageIndex++;
             expectedValue = dataset.getLabelBuffer()[currentImageIndex];
             
-            loadGridFromDataset(grid, dataset, currentImageIndex);
-            loadGridValuesIntoNN(neuralNet, grid);
+            grid.loadDatasetImage(dataset, currentImageIndex);
+            neuralNet.loadInGrid(grid);
             neuralNet.run();
         }
         else if (IsKeyPressed(KEY_LEFT) && currentImageIndex > 0) {
             currentImageIndex--;
             expectedValue = dataset.getLabelBuffer()[currentImageIndex];
             
-            loadGridFromDataset(grid, dataset, currentImageIndex);
-            loadGridValuesIntoNN(neuralNet, grid);
+            grid.loadDatasetImage(dataset, currentImageIndex);
+            neuralNet.loadInGrid(grid);
             neuralNet.run();
         }
 
@@ -267,7 +122,7 @@ int main() {
 
         if (IsKeyPressed(KEY_L)) {
             loadNeuralNet(neuralNet);
-            loadGridValuesIntoNN(neuralNet, grid);
+            neuralNet.loadInGrid(grid);
             neuralNet.run();
         }
 
@@ -284,12 +139,12 @@ int main() {
             currentImageIndex = batchesRan * batchSize + iterationsRan;
             expectedValue = dataset.getLabelBuffer()[currentImageIndex];
 
-            loadGridFromDataset(grid, dataset, currentImageIndex);
-            loadGridValuesIntoNN(neuralNet, grid);
+            grid.loadDatasetImage(dataset, currentImageIndex);
+            neuralNet.loadInGrid(grid);
             neuralNet.run();
             neuralNet.train(expectedValue);
 
-            if (getHighestIndex(neuralNet.getOutputLayer()) == expectedValue) {
+            if (neuralNet.getOutputLayer().getHighestIndex() == expectedValue) {
                 correctCount++;
             }
 
@@ -314,8 +169,8 @@ int main() {
 
                         currentImageIndex = 0;
                         expectedValue = dataset.getLabelBuffer()[currentImageIndex];
-                        loadGridFromDataset(grid, dataset, currentImageIndex);
-                        loadGridValuesIntoNN(neuralNet, grid);
+                        grid.loadDatasetImage(dataset, currentImageIndex);
+                        neuralNet.loadInGrid(grid);
                         neuralNet.run();
                     }
                 }
@@ -351,18 +206,26 @@ int main() {
             //    }
             //}
         }
-        
-        // Testing loss function
-        //JVector<float> maxError(10);
-        //float testValues[10] = { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 };
-        //for (int i = 0; i < 10; i++) {
-        //    maxError[i] = testValues[i];
-        //}
-        //evaluatedCost = computeMeanError(expectedValue, maxError);
 
-        //evaluatedCost = computeMeanError(expectedValue, neuralNet.getOutputLayer());
-        evaluatedCost = computeCrossEntropy(expectedValue, neuralNet.getOutputLayer());
+        JVector<float> expectedVector = makeHotVector(10, expectedValue);
+        float evaluatedCost = computeCrossEntropy(expectedVector, neuralNet.getOutputLayer());
         
+        // Sort confidence values from highest to lowest
+        JVector<std::pair<int, float>> confidenceValues(neuralNet.getOutputLayer().getSize());
+        for (int i = 0; i < confidenceValues.getSize(); i++) {
+            confidenceValues[i] = { i, neuralNet.getOutputLayer()[i] };
+        }
+        std::sort(confidenceValues.getDataPtr(), confidenceValues.getEnd(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second > b.second; });
+
+        // Determine accuracy rate of current epoch
+        float accuracy;
+        if (iterationsRan + batchesRan == 0) {
+            accuracy = 0;
+        }
+        else {
+            accuracy = (float)correctCount / (iterationsRan + batchesRan * batchSize);
+        }
+
         // Drawing
         BeginDrawing();
 
@@ -385,12 +248,6 @@ int main() {
         std::string trainingData = "Training Info:\n\nEpochs ran: " + std::to_string(epochsRan) + "\n\nBatches ran: " + std::to_string(batchesRan) + "\n\nIterations ran: " + std::to_string(iterationsRan);
         DrawText(trainingData.c_str(), 1000, 200, 20, RED);
 
-        JVector<std::pair<int, float>> confidenceValues(neuralNet.getOutputLayer().getSize());
-        for (int i = 0; i < confidenceValues.getSize(); i++) {
-            confidenceValues[i] = { i, neuralNet.getOutputLayer()[i] };
-        }
-        std::sort(confidenceValues.getDataPtr(), confidenceValues.getEnd(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second > b.second; });
-
         DrawText("Confidence Values:", 800, 100, 20, BLUE);
         for (int i = 0; i < 10; i++) {
             float value = confidenceValues[i].second;//neuralNet.getOutputLayer()[i];
@@ -403,10 +260,6 @@ int main() {
         std::string predictStr = "Predicted Number: " + std::to_string(confidenceValues[0].first);
         DrawText(predictStr.c_str(), 800, 500, 20, BLUE);
 
-        float accuracy = (float)correctCount / (iterationsRan + batchesRan * batchSize);
-        if ((iterationsRan + batchesRan * batchSize) == 0) {
-            accuracy = 0;
-        }
         std::string accuracyStr = "Previous Epoch Accuracy: " + std::to_string(previousEpochAccuracy) + "\nCurrent Epoch Accuracy: " + std::to_string(accuracy);
         DrawText(accuracyStr.c_str(), 800, 520, 20, GREEN);
 

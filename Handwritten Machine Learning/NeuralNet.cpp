@@ -1,4 +1,5 @@
 #include "NeuralNet.h"
+#include "NNMathLib.h"
 
 NeuralNet::NeuralNet(int layerCount, ...) {
 	int* neuronsPerLayer = new int[layerCount];
@@ -11,8 +12,8 @@ NeuralNet::NeuralNet(int layerCount, ...) {
 	}
 
 	// distance from 0
-	initValueRange = 1.f;
-	initValueRangeBias = 1.f;
+	initWeightRange = 1.f;
+	initBiasRange = 1.f;
 
 	inputLayer = JVector<float>(neuronsPerLayer[0]);
 	outputLayer = JVector<float>(neuronsPerLayer[layerCount - 1]);
@@ -31,21 +32,11 @@ NeuralNet::NeuralNet(int layerCount, ...) {
 
 		// matrix initialisation
 		weightMatrices[i] = JMatrix<float>(inputVectorLength, outputVectorLength);
-		for (int row = 0; row < outputVectorLength; row++) {
-			for (int col = 0; col < inputVectorLength; col++) {
-				float randValue = ((rand() / (float)RAND_MAX) * initValueRange * 2) - initValueRange;
-
-				weightMatrices[i].setValue(col, row, randValue);
-			}
-		}
+		randomiseMatrix(weightMatrices[i], initWeightRange);
 
 		// bias vector initialisation
 		biasVectors[i] = JVector<float>(outputVectorLength);
-		for (int index = 0; index < biasVectors[i].getSize(); index++) {
-			float randValue = ((rand() / (float)RAND_MAX) * initValueRangeBias * 2) - initValueRangeBias;
-
-			biasVectors[i].setValue(index, randValue);
-		}
+		randomiseVector(biasVectors[i], initBiasRange);
 	}
 
 	layerGradients = new JVector<float>[hiddenLayerCount + 1];
@@ -73,8 +64,8 @@ NeuralNet::NeuralNet(int layerCount, int* neuronsPerLayer) {
 	}
 
 	// distance from 0
-	initValueRange = 1.f;
-	initValueRangeBias = 1.f;
+	initWeightRange = 1.f;
+	initBiasRange = 1.f;
 
 	inputLayer = JVector<float>(neuronsPerLayer[0]);
 	outputLayer = JVector<float>(neuronsPerLayer[layerCount - 1]);
@@ -93,21 +84,11 @@ NeuralNet::NeuralNet(int layerCount, int* neuronsPerLayer) {
 
 		// matrix initialisation
 		weightMatrices[i] = JMatrix<float>(inputVectorLength, outputVectorLength);
-		for (int row = 0; row < outputVectorLength; row++) {
-			for (int col = 0; col < inputVectorLength; col++) {
-				float randValue = ((rand() / (float)RAND_MAX) * initValueRange * 2) - initValueRange;
-
-				weightMatrices[i].setValue(col, row, randValue);
-			}
-		}
+		randomiseMatrix(weightMatrices[i], initWeightRange);
 
 		// bias vector initialisation
 		biasVectors[i] = JVector<float>(outputVectorLength);
-		for (int index = 0; index < biasVectors[i].getSize(); index++) {
-			float randValue = ((rand() / (float)RAND_MAX) * initValueRangeBias * 2) - initValueRangeBias;
-
-			biasVectors[i].setValue(index, randValue);
-		}
+		randomiseVector(biasVectors[i], initBiasRange);
 	}
 
 	layerGradients = new JVector<float>[hiddenLayerCount + 1];
@@ -139,8 +120,8 @@ NeuralNet::~NeuralNet() {
 }
 
 NeuralNet::NeuralNet(const NeuralNet& copy) {
-	initValueRange = copy.initValueRange;
-	initValueRangeBias = copy.initValueRangeBias;
+	initWeightRange = copy.initWeightRange;
+	initBiasRange = copy.initBiasRange;
 
 	inputLayer = copy.inputLayer;
 	outputLayer = copy.outputLayer;
@@ -179,8 +160,8 @@ const NeuralNet& NeuralNet::operator=(const NeuralNet& copy) {
 	delete[] weightGradients;
 	delete[] biasGradients;
 
-	initValueRange = copy.initValueRange;
-	initValueRangeBias = copy.initValueRangeBias;
+	initWeightRange = copy.initWeightRange;
+	initBiasRange = copy.initBiasRange;
 
 	inputLayer = copy.inputLayer;
 	outputLayer = copy.outputLayer;
@@ -210,6 +191,29 @@ const NeuralNet& NeuralNet::operator=(const NeuralNet& copy) {
 	return *this;
 }
 
+void NeuralNet::loadInGrid(PixelGrid& pixelGrid) {
+	for (int i = 0; i < inputLayer.getSize(); i++) {
+		byte byteValue = pixelGrid.getDataPtr()[i];
+		inputLayer[i] = (float)byteValue;
+	}
+}
+
+void NeuralNet::randomiseMatrix(JMatrix<float>& matrix, float randRange) {
+	int count = matrix.getColumnCount() * matrix.getRowCount();
+
+	for (int i = 0; i < count; i++) {
+		float randValue = ((rand() / (float)RAND_MAX) * randRange * 2) - randRange;
+		matrix.getDataPtr()[i] = randValue;
+	}
+}
+
+void NeuralNet::randomiseVector(JVector<float>& vector, float randRange) {
+	for (int i = 0; i < vector.getSize(); i++) {
+		float randValue = ((rand() / (float)RAND_MAX) * randRange * 2) - randRange;
+		vector[i] = randValue;
+	}
+}
+
 void NeuralNet::run() {
 	// For special case where there are no hidden layers
 	if (hiddenLayerCount == 0) {
@@ -232,31 +236,26 @@ void NeuralNet::run() {
 	// Compute last Hidden Layer into Output Layer
 	outputLayer.copy(weightMatrices[hiddenLayerCount].multiply(hiddenLayers[hiddenLayerCount - 1])).addOn(biasVectors[hiddenLayerCount]);
 	//applySigmoid(outputLayer);
-	applySoftMax(outputLayer);
+	applySoftmax(outputLayer);
 }
 
 void NeuralNet::train(int expectedValue) {
 	// Calculate deltas at output layer
+	JVector<float> expectedVector = makeHotVector(10, expectedValue);
 	layerGradients[hiddenLayerCount].copy(outputLayer);
-	for (int i = 0; i < outputLayer.getSize(); i++) {
-		// Index of output layer matches its corresponding value (0-9)
-		float desiredConfidenceValue = 0;
-		if (i == expectedValue) {
-			desiredConfidenceValue = 1;
-		}
+	applyDerivativeSoftmaxCrossEntropy(expectedVector, layerGradients[hiddenLayerCount]);
+	//for (int i = 0; i < outputLayer.getSize(); i++) {
+	//	// Index of output layer matches its corresponding value (0-9)
+	//	float desiredConfidenceValue = 0;
+	//	if (i == expectedValue) {
+	//		desiredConfidenceValue = 1;
+	//	}
 
-		float outputNeuronValue = outputLayer[i];
-		float value = outputLayer[i] - desiredConfidenceValue;
-		//float derivativeCostValue = derivativeCost(outputNeuronValue, desiredConfidenceValue);
+	//	//float value = outputLayer[i] - desiredConfidenceValue;
+	//	float value = derivativeSoftmaxCrossEntropy(desiredConfidenceValue, outputLayer[i]);
 
-		//float derivativeSigmoidValue = derivativePostSigmoid(outputNeuronValue);
-		//float value = derivativeSigmoidValue * derivativeCostValue;
-
-		//float derivativeSoftMaxValue = derivativeSoftMax(i);
-		//float value = derivativeSoftMaxValue * derivativeCostValue;
-
-		layerGradients[hiddenLayerCount][i] = value;
-	}
+	//	layerGradients[hiddenLayerCount][i] = value;
+	//}
 
 	// Calculating deltas at hidden layers
 	for (int i = 0; i < hiddenLayerCount; i++) {

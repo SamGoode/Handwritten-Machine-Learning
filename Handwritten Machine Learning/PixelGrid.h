@@ -3,6 +3,7 @@
 #include <utility>
 #include "raylib.h"
 #include "JMatrix.h"
+#include "MnistParser.h"
 
 using byte = unsigned char;
 class PixelGrid {
@@ -27,6 +28,8 @@ public:
 
 	JMatrix<byte>& getMatrix() { return matrix; }
 	byte* getDataPtr() { return matrix.getDataPtr(); }
+
+	void loadDatasetImage(MnistParser& dataset, int imageIndex);
 
 	std::pair<int, int> getCellCoords(Vector2 screenPos);
 	void setCellValue(int x, int y, byte value);

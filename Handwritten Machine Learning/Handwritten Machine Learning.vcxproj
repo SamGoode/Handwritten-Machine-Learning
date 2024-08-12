@@ -149,6 +149,8 @@
     <ClInclude Include="JVector.h" />
     <ClInclude Include="MnistParser.h" />
     <ClInclude Include="NeuralNet.h" />
+    <ClInclude Include="NNFileManager.h" />
+    <ClInclude Include="NNMathLib.h" />
     <ClInclude Include="PixelGrid.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
