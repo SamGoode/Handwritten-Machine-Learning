@@ -32,8 +32,8 @@ public:
 	void setCellValue(int x, int y, byte value);
 	void clearGrid() { matrix.setAllValues(0); }
 
-	void paint(int x, int y);
-	void erase(int x, int y);
+	void paint(int x, int y, int strength);
+	void erase(int x, int y, int strength);
 
 	void invertBlackWhite();
 

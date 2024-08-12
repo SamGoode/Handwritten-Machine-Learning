@@ -27,7 +27,7 @@ void PixelGrid::setCellValue(int x, int y, byte value) {
 	matrix.setValue(x, y, value);
 }
 
-void PixelGrid::paint(int x, int y) {
+void PixelGrid::paint(int x, int y, int strength) {
 	for (int i = 0; i < 3; i++) {
 		for (int n = 0; n < 3; n++) {
 			if (x + i - 1 < 0 || x + i - 1 >= cellCount || y + n - 1 < 0 || y + n - 1 >= cellCount) {
@@ -36,17 +36,17 @@ void PixelGrid::paint(int x, int y) {
 
 			//matrix.addValue(x + i - 1, y + n - 1, gaussianKernel[n][i]);
 			float currentValue = matrix.getValue(x + i - 1, y + n - 1);
-			if (currentValue + gaussianKernel[n][i] > 255) {
+			if (currentValue + gaussianKernel[n][i] * strength > 255) {
 				matrix.setValue(x + i - 1, y + n - 1, 255);
 			}
 			else {
-				matrix.setValue(x + i - 1, y + n - 1, currentValue + gaussianKernel[n][i]);
+				matrix.setValue(x + i - 1, y + n - 1, currentValue + gaussianKernel[n][i] * strength);
 			}
 		}
 	}
 }
 
-void PixelGrid::erase(int x, int y) {
+void PixelGrid::erase(int x, int y, int strength) {
 	for (int i = 0; i < 3; i++) {
 		for (int n = 0; n < 3; n++) {
 			if (x + i - 1 < 0 || x + i - 1 >= cellCount || y + n - 1 < 0 || y + n - 1 >= cellCount) {
@@ -55,11 +55,11 @@ void PixelGrid::erase(int x, int y) {
 
 			//matrix.addValue(x + i - 1, y + n - 1, gaussianKernel[n][i]);
 			float currentValue = matrix.getValue(x + i - 1, y + n - 1);
-			if (currentValue - gaussianKernel[n][i] < 0) {
+			if (currentValue - gaussianKernel[n][i] * strength < 0) {
 				matrix.setValue(x + i - 1, y + n - 1, 0);
 			}
 			else {
-				matrix.setValue(x + i - 1, y + n - 1, currentValue - gaussianKernel[n][i]);
+				matrix.setValue(x + i - 1, y + n - 1, currentValue - gaussianKernel[n][i] * strength);
 			}
 		}
 	}

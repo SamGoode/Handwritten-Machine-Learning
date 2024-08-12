@@ -196,9 +196,9 @@ int main() {
 
     bool training = false;
     float learningRate = 0.001f;
-    int batchSize = 10;
-    int batches = 1;
-    int epochs = 1000;
+    int batchSize = 50;
+    int batches = 1200;
+    int epochs = 50;
     
     int iterationsRan = 0;
     int batchesRan = 0;
@@ -207,6 +207,8 @@ int main() {
     float previousEpochAccuracy = 0;
     int correctCount = 0;
 
+    std::pair<int, int> prevCellCoords = { -1, -1 };
+
     while (!WindowShouldClose()) {
         // Updates
         float delta = GetFrameTime();
@@ -214,21 +216,23 @@ int main() {
         
         std::pair<int, int> cellCoords = grid.getCellCoords(mousePos);
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-            if (cellCoords != std::pair<int, int>(-1, -1)) {
-                //grid.setCellValue(cellCoords.first, cellCoords.second, 255);
-                grid.paint(cellCoords.first, cellCoords.second);
+            if (cellCoords != std::pair<int, int>(-1, -1) && cellCoords != prevCellCoords) {
+                grid.paint(cellCoords.first, cellCoords.second, 40);
 
                 loadGridValuesIntoNN(neuralNet, grid);
                 neuralNet.run();
+
+                prevCellCoords = cellCoords;
             }
         }
         else if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
-            if (cellCoords != std::pair<int, int>(-1, -1)) {
-                //grid.setCellValue(cellCoords.first, cellCoords.second, 0);
-                grid.erase(cellCoords.first, cellCoords.second);
+            if (cellCoords != std::pair<int, int>(-1, -1) && cellCoords != prevCellCoords) {
+                grid.erase(cellCoords.first, cellCoords.second, 30);
 
                 loadGridValuesIntoNN(neuralNet, grid);
                 neuralNet.run();
+
+                prevCellCoords = cellCoords;
             }
         }
 
