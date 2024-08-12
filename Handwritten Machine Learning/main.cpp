@@ -77,9 +77,18 @@ int getHighestIndex(const JVector<float>& vector) {
     return index;
 }
 
-void saveNeuralNet(NeuralNet& neuralNet, std::string fileName) {
+void saveNeuralNet(NeuralNet& neuralNet) {
     std::ofstream fileStream;
-    fileStream.open("nn-saves/nn-data.idx3-ubyte", std::ios::binary);
+    fileStream.open("nn-saves/nn-data.idx3-ubyte", std::ios::binary | std::ios::trunc);
+
+    std::cout << "file ";
+    if (fileStream.is_open()) {
+        std::cout << "successfully opened.";
+    }
+    else {
+        std::cout << "failed to open.";
+    }
+    std::cout << std::endl;
 
     int layers = neuralNet.getLayerCount();
     fileStream.write((char*)&layers, sizeof(layers));
@@ -97,18 +106,49 @@ void saveNeuralNet(NeuralNet& neuralNet, std::string fileName) {
 
     for (int i = 0; i < layers - 1; i++) {
         JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(i);
+        JVector<float>& biasVector = neuralNet.getBiasVector(i);
 
         fileStream.write((char*)weightMatrix.getDataPtr(), sizeof(float) * weightMatrix.getColumnCount() * weightMatrix.getRowCount());
+        fileStream.write((char*)biasVector.getDataPtr(), sizeof(float) * biasVector.getSize());
     }
+
+    fileStream.close();
 }
 
-void loadNeuralNet(NeuralNet& neuralNet, std::string fileName) {
+void loadNeuralNet(NeuralNet& neuralNet) {
     std::ifstream fileStream;
     fileStream.open("nn-saves/nn-data.idx3-ubyte", std::ios::binary);
+
+    std::cout << "file ";
+    if (fileStream.is_open()) {
+        std::cout << "successfully opened.";
+    }
+    else {
+        std::cout << "failed to open.";
+    }
+    std::cout << std::endl;
 
     int layers;
     fileStream.read((char*)&layers, sizeof(layers));
     
+    if (layers < 2) {
+        throw "not enough neural net layers";
+    }
+
+    int* neuronsPerLayer = new int[layers];
+    fileStream.read((char*)neuronsPerLayer, sizeof(int) * layers);
+
+    neuralNet = NeuralNet(layers, neuronsPerLayer);
+
+    for (int i = 0; i < layers - 1; i++) {
+        JMatrix<float>& weightMatrix = neuralNet.getWeightMatrix(i);
+        JVector<float>& biasVector = neuralNet.getBiasVector(i);
+
+        fileStream.read((char*)weightMatrix.getDataPtr(), sizeof(float) * weightMatrix.getColumnCount() * weightMatrix.getRowCount());
+        fileStream.read((char*)biasVector.getDataPtr(), sizeof(float) * biasVector.getSize());
+    }
+    
+    fileStream.close();
 }
 
 int main() {
@@ -156,9 +196,9 @@ int main() {
 
     bool training = false;
     float learningRate = 0.001f;
-    int batchSize = 50;
-    int batches = 1200;
-    int epochs = 50;
+    int batchSize = 10;
+    int batches = 1;
+    int epochs = 1000;
     
     int iterationsRan = 0;
     int batchesRan = 0;
@@ -215,6 +255,16 @@ int main() {
 
         if (IsKeyPressed(KEY_SPACE)) {
             grid.invertBlackWhite();
+        }
+
+        if (IsKeyPressed(KEY_S)) {
+            saveNeuralNet(neuralNet);
+        }
+
+        if (IsKeyPressed(KEY_L)) {
+            loadNeuralNet(neuralNet);
+            loadGridValuesIntoNN(neuralNet, grid);
+            neuralNet.run();
         }
 
         // Training implementation for the purpose of being a demo

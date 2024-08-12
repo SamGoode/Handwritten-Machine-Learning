@@ -63,6 +63,68 @@ NeuralNet::NeuralNet(int layerCount, ...) {
 		weightGradients[i].setAllValues(0);
 		biasGradients[i].setAllValues(0);
 	}
+
+	delete[] neuronsPerLayer;
+}
+
+NeuralNet::NeuralNet(int layerCount, int* neuronsPerLayer) {
+	if (layerCount < 2) {
+		throw "Not enough args for input and output layers";
+	}
+
+	// distance from 0
+	initValueRange = 1.f;
+	initValueRangeBias = 1.f;
+
+	inputLayer = JVector<float>(neuronsPerLayer[0]);
+	outputLayer = JVector<float>(neuronsPerLayer[layerCount - 1]);
+
+	hiddenLayerCount = layerCount - 2;
+	hiddenLayers = new JVector<float>[hiddenLayerCount];
+	for (int i = 0; i < hiddenLayerCount; i++) {
+		hiddenLayers[i] = JVector<float>(neuronsPerLayer[i + 1]);
+	}
+
+	weightMatrices = new JMatrix<float>[hiddenLayerCount + 1];
+	biasVectors = new JVector<float>[hiddenLayerCount + 1];
+	for (int i = 0; i < hiddenLayerCount + 1; i++) {
+		int inputVectorLength = neuronsPerLayer[i];
+		int outputVectorLength = neuronsPerLayer[i + 1];
+
+		// matrix initialisation
+		weightMatrices[i] = JMatrix<float>(inputVectorLength, outputVectorLength);
+		for (int row = 0; row < outputVectorLength; row++) {
+			for (int col = 0; col < inputVectorLength; col++) {
+				float randValue = ((rand() / (float)RAND_MAX) * initValueRange * 2) - initValueRange;
+
+				weightMatrices[i].setValue(col, row, randValue);
+			}
+		}
+
+		// bias vector initialisation
+		biasVectors[i] = JVector<float>(outputVectorLength);
+		for (int index = 0; index < biasVectors[i].getSize(); index++) {
+			float randValue = ((rand() / (float)RAND_MAX) * initValueRangeBias * 2) - initValueRangeBias;
+
+			biasVectors[i].setValue(index, randValue);
+		}
+	}
+
+	layerGradients = new JVector<float>[hiddenLayerCount + 1];
+	weightGradients = new JMatrix<float>[hiddenLayerCount + 1];
+	biasGradients = new JVector<float>[hiddenLayerCount + 1];
+	for (int i = 0; i < hiddenLayerCount + 1; i++) {
+		int inputVectorLength = neuronsPerLayer[i];
+		int outputVectorLength = neuronsPerLayer[i + 1];
+
+		layerGradients[i] = JVector<float>(outputVectorLength);
+		weightGradients[i] = JMatrix<float>(inputVectorLength, outputVectorLength);
+		biasGradients[i] = JVector<float>(outputVectorLength);
+
+		layerGradients[i].setAllValues(0);
+		weightGradients[i].setAllValues(0);
+		biasGradients[i].setAllValues(0);
+	}
 }
 
 NeuralNet::~NeuralNet() {

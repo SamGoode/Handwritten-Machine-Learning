@@ -22,14 +22,15 @@ private:
 public:
 	NeuralNet() {}
 	NeuralNet(int layerCount, ...);
+	NeuralNet(int layerCount, int* neuronsPerLayer);
 	~NeuralNet();
 
 	NeuralNet(const NeuralNet& copy);
 	const NeuralNet& operator=(const NeuralNet& copy);
 
-	static float sigmoidFunction(float value) { return 1 / (1 + pow(2.71828f, -value)); }
+	static float sigmoidFunction(float value) { return 1 / (1 + exp(-value)); }
 	static void applySigmoid(JVector<float>& vector) { for (int i = 0; i < vector.getSize(); i++) { vector[i] = sigmoidFunction(vector[i]); } }
-	static float derivativeSigmoid(float input) { return 1 / (2 + pow(2.71828f, input) + pow(2.71828f, -input)); }
+	static float derivativeSigmoid(float input) { return 1 / (2 + exp(input) + exp(-input)); }
 	static float derivativePostSigmoid(float input) { return input * (1 - input); }
 	//static float derivativeCost(float givenValue, float desiredValue) { return (givenValue - desiredValue); }
 
@@ -37,7 +38,7 @@ public:
 	void applySoftMax(JVector<float>& vector) {
 		float sum = 0;
 		for (int i = 0; i < vector.getSize(); i++) {
-			vector[i] = pow(2.71828f, vector[i]);
+			vector[i] = exp(vector[i]);
 			sum += vector[i];
 		}
 
