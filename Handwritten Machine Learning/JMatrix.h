@@ -22,6 +22,18 @@ public:
 		values = new T[columns * rows];
 	}
 
+	JMatrix(const JVector<T>& colVec, const JVector<T>& rowVec) {
+		columns = colVec.getSize();
+		rows = rowVec.getSize();
+		values = new T[columns * rows];
+
+		for (int row = 0; row < rows; row++) {
+			for (int col = 0; col < columns; col++) {
+				values[col + row * columns] = colVec[col] * rowVec[row];
+			}
+		}
+	}
+
 	~JMatrix() {
 		delete[] values;
 	}
@@ -222,4 +234,6 @@ public:
 
 		return str;
 	}
+
+
 };

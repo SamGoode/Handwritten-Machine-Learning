@@ -258,30 +258,17 @@ void NeuralNet::train(int expectedValue) {
 	// For special cases where there are no hidden layers
 	if (hiddenLayerCount == 0) {
 		// Compute partial derivatives between Input Layer and Output Layer
-		for (int row = 0; row < weightMatrices[0].getRowCount(); row++) {
-			float activationDerivative = layerGradients[0][row];
+		weightGradients[0].addOn(JMatrix<float>(inputLayer, layerGradients[0]));
 
-			for (int col = 0; col < weightMatrices[0].getColumnCount(); col++) {
-				float weightDerivative = inputLayer[col] * activationDerivative;
-				weightGradients[0].addValue(col, row, weightDerivative);
-			}
-		}
 		biasGradients[0].addOn(layerGradients[0]);
 
 		return;
 	}
 
 	// Compute partial derivatives between Input Layer and first Hidden Layer
-	for (int row = 0; row < weightMatrices[0].getRowCount(); row++) {
-		float activationDerivative = layerGradients[0][row];
+	weightGradients[0].addOn(JMatrix<float>(inputLayer, layerGradients[0]));
 
-		for (int col = 0; col < weightMatrices[0].getColumnCount(); col++) {
-			float weightDerivative = inputLayer[col] * activationDerivative;
-			weightGradients[0].addValue(col, row, weightDerivative);
-		}
-
-		biasGradients[0].addOn(layerGradients[0]);
-	}
+	biasGradients[0].addOn(layerGradients[0]);
 
 	// Compute partial derivatives between hidden layers
 	for (int i = 0; i < hiddenLayerCount - 1; i++) {
@@ -293,27 +280,13 @@ void NeuralNet::train(int expectedValue) {
 		JMatrix<float>& weightGradient = weightGradients[i + 1];
 		JVector<float>& biasGradient = biasGradients[i + 1];
 
-		for (int row = 0; row < weightMatrix.getRowCount(); row++) {
-			float activationDerivative = layerGradient[row];
-
-			for (int col = 0; col < weightMatrix.getColumnCount(); col++) {
-				float weightDerivative = previousLayer[col] * activationDerivative;
-				weightGradient.addValue(col, row, weightDerivative);
-			}
-		}
+		weightGradient.addOn(JMatrix<float>(previousLayer, layerGradient));
 
 		biasGradient.addOn(layerGradient);
 	}
 
 	// Compute partial derivatives between last Hidden Layer and Output Layer
-	for (int row = 0; row < weightMatrices[hiddenLayerCount].getRowCount(); row++) {
-		float activationDerivative = layerGradients[hiddenLayerCount][row];
-
-		for (int col = 0; col < weightMatrices[hiddenLayerCount].getColumnCount(); col++) {
-			float weightDerivative = hiddenLayers[hiddenLayerCount - 1][col] * activationDerivative;
-			weightGradients[hiddenLayerCount].addValue(col, row, weightDerivative);
-		}
-	}
+	weightGradients[hiddenLayerCount].addOn(JMatrix<float>(hiddenLayers[hiddenLayerCount - 1], layerGradients[hiddenLayerCount]));
 
 	biasGradients[hiddenLayerCount].addOn(layerGradients[hiddenLayerCount]);
 }

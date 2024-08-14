@@ -50,9 +50,9 @@ int main() {
     int currentImageIndex = 0;
 
     bool training = false;
-    float learningRate = 0.0001f;
-    int batchSize = 100;
-    int batches = 600;
+    float learningRate = 0.001f;
+    int batchSize = 50;
+    int batches = 1200;
     int epochs = 50;
     
     int iterationsRan = 0;
