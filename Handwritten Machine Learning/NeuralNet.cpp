@@ -235,7 +235,6 @@ void NeuralNet::run() {
 
 	// Compute last Hidden Layer into Output Layer
 	outputLayer.copy(weightMatrices[hiddenLayerCount].multiply(hiddenLayers[hiddenLayerCount - 1])).addOn(biasVectors[hiddenLayerCount]);
-	//applySigmoid(outputLayer);
 	applySoftmax(outputLayer);
 }
 
@@ -244,18 +243,6 @@ void NeuralNet::train(int expectedValue) {
 	JVector<float> expectedVector = makeHotVector(10, expectedValue);
 	layerGradients[hiddenLayerCount].copy(outputLayer);
 	applyDerivativeSoftmaxCrossEntropy(expectedVector, layerGradients[hiddenLayerCount]);
-	//for (int i = 0; i < outputLayer.getSize(); i++) {
-	//	// Index of output layer matches its corresponding value (0-9)
-	//	float desiredConfidenceValue = 0;
-	//	if (i == expectedValue) {
-	//		desiredConfidenceValue = 1;
-	//	}
-
-	//	//float value = outputLayer[i] - desiredConfidenceValue;
-	//	float value = derivativeSoftmaxCrossEntropy(desiredConfidenceValue, outputLayer[i]);
-
-	//	layerGradients[hiddenLayerCount][i] = value;
-	//}
 
 	// Calculating deltas at hidden layers
 	for (int i = 0; i < hiddenLayerCount; i++) {
@@ -263,13 +250,7 @@ void NeuralNet::train(int expectedValue) {
 		JMatrix<float>& weightMatrix = weightMatrices[layerIndex + 1];
 		layerGradients[layerIndex].copy(weightMatrix.transposedMultiply(layerGradients[layerIndex + 1]));
 
-		for (int index = 0; index < layerGradients[layerIndex].getSize(); index++) {
-			float hiddenNeuronValue = hiddenLayers[layerIndex][index];
-			float derivativeSigmoidValue = derivativePostSigmoid(hiddenNeuronValue);
-
-			float value = layerGradients[layerIndex][index] * derivativeSigmoidValue;
-			layerGradients[layerIndex][index] = value;
-		}
+		applyDerivativePostSigmoid(layerGradients[layerIndex], hiddenLayers[layerIndex]);
 	}
 
 	// Computing gradient vectors for weights and biases
@@ -284,10 +265,8 @@ void NeuralNet::train(int expectedValue) {
 				float weightDerivative = inputLayer[col] * activationDerivative;
 				weightGradients[0].addValue(col, row, weightDerivative);
 			}
-
-			float biasDerivative = activationDerivative;
-			biasGradients[0].addValue(row, biasDerivative);
 		}
+		biasGradients[0].addOn(layerGradients[0]);
 
 		return;
 	}
@@ -301,8 +280,7 @@ void NeuralNet::train(int expectedValue) {
 			weightGradients[0].addValue(col, row, weightDerivative);
 		}
 
-		float biasDerivative = activationDerivative;
-		biasGradients[0].addValue(row, biasDerivative);
+		biasGradients[0].addOn(layerGradients[0]);
 	}
 
 	// Compute partial derivatives between hidden layers
@@ -322,10 +300,9 @@ void NeuralNet::train(int expectedValue) {
 				float weightDerivative = previousLayer[col] * activationDerivative;
 				weightGradient.addValue(col, row, weightDerivative);
 			}
-
-			float biasDerivative = activationDerivative;
-			biasGradient.addValue(row, biasDerivative);
 		}
+
+		biasGradient.addOn(layerGradient);
 	}
 
 	// Compute partial derivatives between last Hidden Layer and Output Layer
@@ -336,10 +313,9 @@ void NeuralNet::train(int expectedValue) {
 			float weightDerivative = hiddenLayers[hiddenLayerCount - 1][col] * activationDerivative;
 			weightGradients[hiddenLayerCount].addValue(col, row, weightDerivative);
 		}
-
-		float biasDerivative = activationDerivative;
-		biasGradients[hiddenLayerCount].addValue(row, biasDerivative);
 	}
+
+	biasGradients[hiddenLayerCount].addOn(layerGradients[hiddenLayerCount]);
 }
 
 // Apply gradient vector to current weights and clear stored gradient vector

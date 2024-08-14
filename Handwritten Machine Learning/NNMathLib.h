@@ -13,9 +13,25 @@ static JVector<float> makeHotVector(int count, int desiredValue) {
 }
 
 // Sigmoid Functions
-static float sigmoidFunction(float value) { return 1 / (1 + exp(-value)); }
-static void applySigmoid(JVector<float>& vector) { for (int i = 0; i < vector.getSize(); i++) { vector[i] = sigmoidFunction(vector[i]); } }
-static float derivativePostSigmoid(float input) { return input * (1 - input); }
+static float sigmoidFunction(float value) { 
+    return 1 / (1 + exp(-value));
+}
+
+static void applySigmoid(JVector<float>& vector) {
+    for (int i = 0; i < vector.getSize(); i++) {
+        vector[i] = sigmoidFunction(vector[i]);
+    }
+}
+
+static float derivativePostSigmoid(float input) {
+    return input * (1 - input);
+}
+
+static void applyDerivativePostSigmoid(JVector<float>& layerGradient, const JVector<float>& hiddenLayer) {
+    for (int i = 0; i < layerGradient.getSize(); i++) {
+        layerGradient[i] = layerGradient[i] * derivativePostSigmoid(hiddenLayer[i]);
+    }
+}
 
 // Softmax and Cross Entropy Loss Functions
 static void applySoftmax(JVector<float>& vector) {
